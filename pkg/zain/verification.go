@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -14,8 +15,24 @@ var (
 	phoneRegex      = regexp.MustCompile(`(07[789]\d{8}|7[789]\d{8}|9647[789]\d{8})`)
 )
 
+func convertEasternNumerals(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		switch {
+		case r >= '٠' && r <= '٩':
+			b.WriteRune('0' + (r - '٠'))
+		case r >= '۰' && r <= '۹':
+			b.WriteRune('0' + (r - '۰'))
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 func cleanDigits(s string) string {
-	return digitsOnlyRegex.ReplaceAllString(s, "")
+	return digitsOnlyRegex.ReplaceAllString(convertEasternNumerals(s), "")
 }
 
 func parseAmountString(s string) float64 {
@@ -180,4 +197,74 @@ func (c *Client) VerifyIncomingTransfer(ctx context.Context, senderPhone string,
 	}
 
 	return false, nil, nil
+}
+
+// NormalizeMSISDN standardizes any Iraqi phone format (local 078..., 78..., international +964..., or Arabic numerals)
+// into the standard 13-digit international format required by Zain Iraq APIs (9647XXXXXXXX).
+func NormalizeMSISDN(input string) (string, error) {
+	digits := cleanDigits(input)
+
+	if strings.HasPrefix(digits, "00964") {
+		digits = strings.TrimPrefix(digits, "00")
+	}
+
+	switch {
+	case len(digits) == 13 && strings.HasPrefix(digits, "9647"):
+		return digits, nil
+	case len(digits) == 11 && strings.HasPrefix(digits, "07"):
+		return "964" + digits[1:], nil
+	case len(digits) == 10 && strings.HasPrefix(digits, "7"):
+		return "964" + digits, nil
+	default:
+		return "", fmt.Errorf("zain: invalid Iraqi phone number format: %q", input)
+	}
+}
+
+// FormatLocalMSISDN converts a phone number into local Iraqi format (07XXXXXXXX).
+func FormatLocalMSISDN(phone string) string {
+	clean := cleanDigits(phone)
+	if strings.HasPrefix(clean, "964") && len(clean) == 13 {
+		return "0" + clean[3:]
+	}
+	if strings.HasPrefix(clean, "7") && len(clean) == 10 {
+		return "0" + clean
+	}
+	return clean
+}
+
+// WaitForIncomingTransfer polls periodically until an incoming transfer from senderPhone is verified,
+// or until the context expires or is cancelled.
+func (c *Client) WaitForIncomingTransfer(ctx context.Context, senderPhone string, minAmount float64, interval time.Duration) (*IncomingTransferRecord, error) {
+	if interval <= 0 {
+		interval = 3 * time.Second
+	}
+
+	normalized, err := NormalizeMSISDN(senderPhone)
+	if err != nil {
+		normalized = cleanDigits(senderPhone)
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	// Initial immediate check
+	ok, record, err := c.VerifyIncomingTransfer(ctx, normalized, minAmount)
+	if err == nil && ok && record != nil {
+		return record, nil
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+			ok, record, err := c.VerifyIncomingTransfer(ctx, normalized, minAmount)
+			if err != nil {
+				continue
+			}
+			if ok && record != nil {
+				return record, nil
+			}
+		}
+	}
 }

@@ -1238,3 +1238,75 @@ func TestWalletAndIncomingTransferVerification(t *testing.T) {
 		t.Fatalf("expected error for short phone number")
 	}
 }
+
+func TestNormalizeMSISDNAndPolling(t *testing.T) {
+	testCases := []struct {
+		input       string
+		expected    string
+		expectError bool
+	}{
+		{"07801234567", "9647801234567", false},
+		{"7801234567", "9647801234567", false},
+		{"+9647801234567", "9647801234567", false},
+		{"009647801234567", "9647801234567", false},
+		{"9647801234567", "9647801234567", false},
+		{"٠٧٨٠١٢٣٤٥٦٧", "9647801234567", false},
+		{"٩٦٤٧٨٠١٢٣٤٥٦٧", "9647801234567", false},
+		{"07701234567", "9647701234567", false},
+		{"12345", "", true},
+		{"invalid", "", true},
+	}
+
+	for _, tc := range testCases {
+		res, err := NormalizeMSISDN(tc.input)
+		if tc.expectError {
+			if err == nil {
+				t.Errorf("expected error for %q, got %q", tc.input, res)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("unexpected error for %q: %v", tc.input, err)
+			}
+			if res != tc.expected {
+				t.Errorf("NormalizeMSISDN(%q) = %q, expected %q", tc.input, res, tc.expected)
+			}
+		}
+	}
+
+	// FormatLocalMSISDN tests
+	if local := FormatLocalMSISDN("9647801234567"); local != "07801234567" {
+		t.Errorf("FormatLocalMSISDN failed: expected 07801234567, got %s", local)
+	}
+	if local := FormatLocalMSISDN("7801234567"); local != "07801234567" {
+		t.Errorf("FormatLocalMSISDN failed: expected 07801234567, got %s", local)
+	}
+
+	// Test WaitForIncomingTransfer immediate hit with in-memory record
+	client := NewClient()
+	client.RecordIncomingTransfer(IncomingTransferRecord{
+		MSISDN: "9647809988776",
+		Amount: "25000",
+		Title:  "Immediate Transfer",
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	rec, err := client.WaitForIncomingTransfer(ctx, "07809988776", 25000, 100*time.Millisecond)
+	if err != nil {
+		t.Fatalf("WaitForIncomingTransfer failed: %v", err)
+	}
+	if rec.Amount != "25000" {
+		t.Errorf("expected 25000, got %s", rec.Amount)
+	}
+
+	// Test timeout when transfer doesn't exist
+	timeoutCtx, timeoutCancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+	defer timeoutCancel()
+
+	_, errTimeout := client.WaitForIncomingTransfer(timeoutCtx, "07800000000", 10000, 50*time.Millisecond)
+	if errTimeout == nil {
+		t.Errorf("expected timeout error, got nil")
+	}
+}
+

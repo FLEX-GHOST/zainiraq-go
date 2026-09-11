@@ -86,6 +86,9 @@ zainiraq-go/
   * `client.GetWalletBalance(ctx)`: استعلام رصيد المحفظة المباشر عبر `api/number/wallet`.
 * **التحقق الآلي من الحوالات الواردة ومعرفة رقم المرسل (Automated Incoming Verification)**:
   * `client.VerifyIncomingTransfer(ctx, senderPhone, minAmount)`: فحص فوري ومطابقة تلقائية لسجلات التحويل الوارد من رقم المشترك وتأكيد دفع الطلب آلياً بدون أي تدخل بشري.
+  * `client.WaitForIncomingTransfer(ctx, senderPhone, minAmount, interval)`: الانتظار والتحقق الذكي المتكرر (Smart Polling) حتى وصول الحوالة فعلياً وتأكيدها.
+  * `zain.NormalizeMSISDN(phone)`: توحيد وتصحيح صيغ الأرقام العراقية وتحويل الأرقام الشرقية (`٠١٢٣٤...`) إلى الصيغة القياسية (`9647XXXXXXXX`).
+  * `zain.FormatLocalMSISDN(phone)`: تحويل الرقم إلى الصيغة المحلية (`07XXXXXXXX`).
   * `client.GetIncomingTransfers(ctx, limit)`: استخراج كافة الحوالات الواردة من بنود الفاتورة الإلكترونية (`api/number/electronic-bill-items`) وإشعارات الرسائل (`api/notifications`).
   * `client.FormatUSSDTransfer(recipient, amount)`: توليد كود التحويل السريع لزين العراق (`*123*amount*recipient#`).
 * **تحويل الرصيد النقدي (P2P Credit Transfer)**:
