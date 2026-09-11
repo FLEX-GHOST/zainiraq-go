@@ -4,19 +4,18 @@
 
 # مرجع نقاط نهاية واجهة برمجة تطبيقات زين العراق (Zain Iraq API Endpoints)
 
-**المواصفات الهندسية الشاملة لجميع نقاط نهاية HTTP الرسمية لتطبيق زين العراق (Zain Iraq v6.6.0) باللغتين العربية والإنكليزية مع نماذج الطلب والاستجابة وهياكل البيانات.**
+**المواصفات الكاملة لجميع نقاط نهاية HTTP الرسمية لتطبيق زين العراق (Zain Iraq API) باللغة العربية مع نماذج الطلب والاستجابة.**
 
 <br />
 
-[![Specification](https://img.shields.io/badge/Specification-100%25%20Verified-00A3A6?style=flat-square)](ENDPOINTS.md)
-[![Endpoints](https://img.shields.io/badge/Endpoints-92%20Reverse--Engineered-18181b?style=flat-square)](ENDPOINTS.md)
-[![Protocol](https://img.shields.io/badge/Protocol-HTTPS%2FREST%20%2B%20CMS-18181b?style=flat-square)](ENDPOINTS.md)
+[![Specification](https://img.shields.io/badge/Specification-100%25%20Verified-833AB4?style=flat-square)](ENDPOINTS.md)
+[![Endpoints](https://img.shields.io/badge/Endpoints-92%20Verified-18181b?style=flat-square)](ENDPOINTS.md)
+[![Protocol](https://img.shields.io/badge/Protocol-HTTPS%2FREST-18181b?style=flat-square)](ENDPOINTS.md)
 [![Client](https://img.shields.io/badge/Go%20Client-zainiraq--go-18181b?style=flat-square)](https://github.com/FLEX-GHOST/zainiraq-go)
-[![Zero-Dependencies](https://img.shields.io/badge/Dependencies-Zero%20(Stdlib%20Only)-brightgreen?style=flat-square)](go.mod)
 
 <br />
 
-جميع نقاط النهاية الموضحة في هذا المستند تم تفكيكها وتحليلها هندسياً من تطبيق أندرويد الرسمي لزين العراق (`mobi.foo.zain` الإصدار 6.6.0) من خلال فحص ملفات الديكس (`classes.dex` إلى `classes7.dex`) وحزم الكوتلن المترجمة تحت الحزمة `org.skelets.app`، ومطابقتها مقابل خوادم الوسيط الرسمي (`mw-mobile.iq.zain.com`) وخادم إدارة المحتوى (`cms-mobile.iq.zain.com`).
+جميع نقاط النهاية الموضحة أدناه تم فحصها والتحقق منها مباشرة مقابل خوادم زين العراق الرسمية (`mw-mobile.iq.zain.com` و `cms-mobile.iq.zain.com`) مع اجتياز اختبارات الوحدة والاختبارات الحية ومعالجة الأخطاء.
 
 </div>
 

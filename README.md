@@ -4,18 +4,17 @@
 
 # zainiraq-go
 
-**Production-grade, zero-dependency Go SDK for Zain Iraq (v6.6.0) APIs & CMS Engine**
+**Production-grade, zero-dependency Go SDK for Zain Iraq APIs**
 
 [![Go Version](https://img.shields.io/badge/Go-1.26+-18181b?style=flat-square&logo=go&logoColor=white)](https://go.dev/)
-[![Verified Endpoints](https://img.shields.io/badge/Endpoints-92%20Reverse--Engineered-00A3A6?style=flat-square)](ENDPOINTS.md)
-[![Dependencies](https://img.shields.io/badge/Dependencies-Zero%20(Stdlib%20Only)-brightgreen?style=flat-square)](go.mod)
+[![Verified Endpoints](https://img.shields.io/badge/Endpoints-92%20Verified-833AB4?style=flat-square)](ENDPOINTS.md)
+[![Dependencies](https://img.shields.io/badge/Dependencies-Zero%20(Stdlib)-18181b?style=flat-square)](https://pkg.go.dev/)
 [![License](https://img.shields.io/badge/License-MIT-18181b?style=flat-square)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-100%25%20Passing-success?style=flat-square)](pkg/zain)
 
 <br />
 
-مكتبة برمجية متكاملة، احترافية، وعالية الأداء مكتوبة بلغة **Go (Golang)** للتعامل مع واجهات برمجة تطبيقات شركة **زين العراق (Zain Iraq)** ومحرك إدارة المحتوى السحابي (CMS Engine).  
-المكتبة مبنية بنسبة **100% بالاعتماد على المكتبة القياسية للغة Go** وبدون أي مكاتب أو اعتمادات خارجية نهائياً (`Zero External Dependencies`).
+مكتبة برمجية متكاملة، احترافية، وعالية الأداء مكتوبة بلغة **Go (Golang)** للتعامل مع واجهات برمجة تطبيقات شركة **زين العراق (Zain Iraq)**.  
+المكتبة مبنية بنسبة **100% بالاعتماد على المكتبة القياسية للغة Go** وبدون أي مكاتب أو اعتمادات خارجية نهائياً.
 
 </div>
 
