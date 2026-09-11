@@ -195,44 +195,36 @@ import (
 )
 
 func main() {
-	// إنشاء عميل جديد بإعدادات الإنتاج الرسمية
-	client, err := zain.NewClient(
-		zain.WithLanguage("ar"),
-	)
+	client, err := zain.NewClient()
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
 
 	ctx := context.Background()
-	phone := "7845900162"
 
-	// 1. طلب رمز التحقق SMS
-	otpResp, err := client.RequestOTP(ctx, phone)
+	// طلب إرسال رمز التحقق
+	otpResp, err := client.RequestOTP(ctx, "07801234567")
 	if err != nil {
 		log.Fatalf("request otp failed: %v", err)
 	}
 	fmt.Printf("OTP sent successfully! Request ID: %s\n", otpResp.Data.RequestID)
 
-	// 2. إدخال وتأكيد الرمز المكون من 6 أرقام
-	var code string
-	fmt.Print("Enter the 6-digit OTP received via SMS: ")
-	fmt.Scanln(&code)
-
-	session, err := client.VerifyOTPAndLogin(ctx, phone, code)
+	// تأكيد الرمز المكون من 6 أرقام
+	session, err := client.VerifyOTPAndLogin(ctx, "07801234567", "123456")
 	if err != nil {
 		log.Fatalf("verification failed: %v", err)
 	}
 	fmt.Printf("Logged in successfully! User Space: %s\n", session.UserSpace)
 
-	// 3. حفظ الجلسة في ملف JSON لاستخدامها لاحقاً دون الحاجة لكود SMS جديد
-	if err := client.SaveSessionToFile("zain_session.json"); err != nil {
+	// حفظ الجلسة للاستخدام المستقبلي
+	if err := client.SaveSessionToFile("session.json"); err != nil {
 		log.Fatalf("failed to save session: %v", err)
 	}
-	fmt.Println("Session saved to zain_session.json!")
+	fmt.Println("Session saved to session.json!")
 }
 ```
 
-### 3. فحص الرصيد والباقات الفعالة بجلسة سابقة
+### 3. فحص الرصيد والباقات بجلسة سابقة
 
 ```go
 package main
@@ -248,39 +240,21 @@ import (
 func main() {
 	client, err := zain.NewClient()
 	if err != nil {
-		log.Fatalf("failed to initialize client: %v", err)
+		log.Fatalf("client error: %v", err)
 	}
 
-	// استعادة الجلسة المحفوظة مسبقاً
-	if err := client.LoadSessionFromFile("zain_session.json"); err != nil {
-		log.Fatalf("session load failed: %v", err)
+	if err := client.LoadSessionFromFile("session.json"); err != nil {
+		log.Fatalf("session load error: %v", err)
 	}
 
 	ctx := context.Background()
-
-	// استعلام الملف الشخصي
-	profile, err := client.GetProfile(ctx)
-	if err != nil {
-		log.Fatalf("failed to fetch profile: %v", err)
-	}
-	fmt.Printf("Customer: %s | Line: %s | Plan: %s\n", profile.Name, profile.MSISDN, profile.CustomerBillingType)
-
-	// استعلام رصيد المحفظة الأساسي
 	balance, err := client.GetBalance(ctx)
 	if err != nil {
-		log.Fatalf("failed to fetch balance: %v", err)
+		log.Fatalf("balance error: %v", err)
 	}
-	fmt.Printf("Main Balance: %d IQD | Expiry: %s\n", balance.Balance.Value, balance.Balance.Expiry)
 
-	// استعلام رصيد الإنترنت والباقات الفعالة
-	subaccounts, err := client.GetSubaccounts(ctx)
-	if err != nil {
-		log.Fatalf("failed to fetch subaccounts: %v", err)
-	}
-	fmt.Printf("Active Quotas (%d):\n", len(subaccounts))
-	for _, sub := range subaccounts {
-		fmt.Printf(" - Type: %d | Amount: %d | Expiry: %s\n", sub.AccountType, sub.Amount, sub.ExpiryDate)
-	}
+	fmt.Printf("الرصيد الحالي: %d د.ع\n", balance.Balance.Value)
+	fmt.Printf("تاريخ الصلاحية: %s\n", balance.Balance.Expiry)
 }
 ```
 
