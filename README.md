@@ -1,8 +1,6 @@
 <div align="center">
 
-<img src="assets/zain_icon.png" alt="Zain Iraq App Icon" width="105" />
-<br />
-<img src="assets/zain.svg" alt="Zain Iraq Logo" width="280" />
+<img src="assets/zain.svg" alt="Zain Iraq Logo" width="240" />
 
 # zainiraq-go
 
@@ -49,7 +47,7 @@ zainiraq-go/
 │   ├── 05_loyalty_and_imtiyaz/  # استعلام نقاط الولاء واستبدال المكافآت وعروض امتياز
 │   ├── 06_support_and_tickets/  # فتح تذاكر الدعم الفني وتتبع مسار معالجتها
 │   └── interactive_cli/         # واجهة سطر أوامر تفاعلية شاملة (Interactive CLI)
-├── assets/                      # أصول الشعار والأيقونة الرسمية (zain.svg, zain_icon.webp)
+├── assets/                      # الشعار الرسمي المعتمد (zain.svg)
 ├── ENDPOINTS.md                 # المواصفات الهندسية لجميع نقاط النهاية الـ 92
 ├── README.md                    # هذا الدليل الإرشادي الشامل
 ├── LICENSE                      # رخصة الاستخدام MIT

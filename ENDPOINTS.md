@@ -1,8 +1,6 @@
 <div align="center">
 
-<img src="assets/zain_icon.png" alt="أيقونة تطبيق زين العراق الرسمية" width="105" />
-<br />
-<img src="assets/zain.svg" alt="شعار زين العراق" width="280" />
+<img src="assets/zain.svg" alt="شعار زين العراق" width="200" />
 
 # مرجع نقاط نهاية واجهة برمجة تطبيقات زين العراق (Zain Iraq API Endpoints)
 
