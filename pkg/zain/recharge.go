@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 func (c *Client) RechargeVoucher(ctx context.Context, pin string, msisdn ...string) error {
@@ -60,4 +61,34 @@ func (c *Client) ExtendValidity(ctx context.Context, amount int64, msisdn ...str
 
 func (c *Client) GetValidityOptions(ctx context.Context) (*ValidityOptionBody, error) {
 	return doAndDecode[ValidityOptionBody](ctx, c, http.MethodGet, "api/number/validity-options", nil, false, false)
+}
+
+func (c *Client) GetWalletBalance(ctx context.Context, msisdn ...string) (*BalanceResp, error) {
+	target := c.resolveMSISDN(msisdn)
+	path := "api/number/wallet"
+	if target != "" {
+		path += "?msisdn=" + url.QueryEscape(target)
+	}
+	return doAndDecode[BalanceResp](ctx, c, http.MethodGet, path, nil, false, false)
+}
+
+func (c *Client) RequestCreditTransferOTP(ctx context.Context, senderMSISDN ...string) (*OTPRequestIdResp, error) {
+	target := c.resolveMSISDN(senderMSISDN)
+	if target == "" {
+		target = c.MasterWallet()
+	}
+	return c.RequestOTP(ctx, target)
+}
+
+func (c *Client) ConfirmCreditTransferOTP(ctx context.Context, otpCode string, senderMSISDN ...string) (*OTPConfirmationIdResp, error) {
+	target := c.resolveMSISDN(senderMSISDN)
+	if target == "" {
+		target = c.MasterWallet()
+	}
+	return c.ConfirmOTP(ctx, target, otpCode)
+}
+
+func (c *Client) FormatUSSDTransfer(recipient string, amount int64) string {
+	cleanRecipient := cleanDigits(recipient)
+	return fmt.Sprintf("*123*%d*%s#", amount, cleanRecipient)
 }

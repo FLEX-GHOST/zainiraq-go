@@ -1059,3 +1059,182 @@ func TestSessionDataExpiry(t *testing.T) {
 		t.Errorf("future session should not be expired")
 	}
 }
+
+func TestWalletAndIncomingTransferVerification(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/number/wallet":
+			_ = json.NewEncoder(w).Encode(APIResponse[BalanceResp]{
+				Status: "success",
+				Data: BalanceResp{
+					Balance: &BalanceDetails{
+						Value:  25000,
+						Expiry: "2026-12-31",
+					},
+					ServerTime: "2026-09-11T16:00:00Z",
+				},
+			})
+		case "/api/number/electronic-bill-items":
+			_ = json.NewEncoder(w).Encode(APIResponse[ElectronicBillItems]{
+				Status: "success",
+				Data: ElectronicBillItems{
+					Eligible: true,
+					Items: []HistoryItem{
+						{
+							BNumber:         "07801112233",
+							ChargeAmount:    "5000",
+							StartTime:       "2026-09-11 15:30:00",
+							ServiceTypeName: "Credit Transfer",
+							ServiceTypeID:   "transfer",
+						},
+						{
+							BNumber:         "07809998877",
+							ChargeAmount:    "10000",
+							StartTime:       "2026-09-11 16:15:00",
+							ServiceTypeName: "Credit Transfer",
+							ServiceTypeID:   "transfer",
+						},
+					},
+				},
+			})
+		case "/api/notifications":
+			_ = json.NewEncoder(w).Encode(APIResponse[InAppMSGPageContent]{
+				Status: "success",
+				Data: InAppMSGPageContent{
+					Notifications: []InAppNotification{
+						{
+							ID:        "notif-1",
+							Shortname: "p2p-transfer",
+							Title:     &LokaliseText{AR: "تحويل رصيد", EN: "Credit Transfer"},
+							Body:      &LokaliseText{AR: "تم استلام 15000 د.ع من الرقم 07805556677", EN: "Received 15000 IQD from 07805556677"},
+							CreatedAt: "2026-09-11T16:20:00Z",
+						},
+					},
+					Total: 1,
+				},
+			})
+		case "/api/otp/request":
+			var resp OTPRequestIdResp
+			resp.Status = "success"
+			resp.Data.RequestID = "req-wallet-123"
+			_ = json.NewEncoder(w).Encode(resp)
+		case "/api/otp/confirm":
+			_ = json.NewEncoder(w).Encode(APIResponse[OTPConfirmationIdResp]{
+				Status: "success",
+				Data: OTPConfirmationIdResp{
+					ConfirmationID: "conf-wallet-abc",
+				},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer ts.Close()
+
+	client := NewClient(
+		WithBaseURL(ts.URL),
+		WithMasterWallet("07801234567"),
+	)
+	ctx := context.Background()
+
+	// 1. Master Wallet verification
+	if client.MasterWallet() != "07801234567" {
+		t.Fatalf("expected 07801234567, got %s", client.MasterWallet())
+	}
+	client.SetMasterWallet("07807654321")
+	if client.MasterWallet() != "07807654321" {
+		t.Fatalf("expected 07807654321, got %s", client.MasterWallet())
+	}
+
+	// 2. USSD formatting
+	ussd := client.FormatUSSDTransfer("07809998877", 5000)
+	expectedUSSD := "*123*5000*07809998877#"
+	if ussd != expectedUSSD {
+		t.Fatalf("expected %s, got %s", expectedUSSD, ussd)
+	}
+
+	// 3. Wallet Balance
+	wb, err := client.GetWalletBalance(ctx)
+	if err != nil || wb == nil || wb.Balance == nil || wb.Balance.Value != 25000 {
+		t.Fatalf("get wallet balance failed: %v", err)
+	}
+
+	// 4. Wallet Overview
+	overview, err := client.GetWalletOverview(ctx)
+	if err != nil || overview == nil || overview.Balance != 25000 {
+		t.Fatalf("get wallet overview failed: %v", err)
+	}
+
+	// 5. OTP Transfer Flow
+	otpReq, err := client.RequestCreditTransferOTP(ctx)
+	if err != nil || otpReq.Data.RequestID != "req-wallet-123" {
+		t.Fatalf("request transfer otp failed: %v", err)
+	}
+	otpConf, err := client.ConfirmCreditTransferOTP(ctx, "1234")
+	if err != nil || otpConf.ConfirmationID != "conf-wallet-abc" {
+		t.Fatalf("confirm transfer otp failed: %v", err)
+	}
+
+	// 6. Incoming Transfers list
+	transfers, err := client.GetIncomingTransfers(ctx)
+	if err != nil {
+		t.Fatalf("get incoming transfers failed: %v", err)
+	}
+	if len(transfers) < 2 {
+		t.Fatalf("expected at least 2 transfers, got %d", len(transfers))
+	}
+
+	// 7. Automated Incoming Transfer Verification (from ElectronicBillItems)
+	verified, rec, err := client.VerifyIncomingTransfer(ctx, "07801112233", 5000)
+	if err != nil || !verified || rec == nil {
+		t.Fatalf("verify incoming transfer failed: %v", err)
+	}
+	if rec.Amount != "5000" {
+		t.Fatalf("expected amount 5000, got %s", rec.Amount)
+	}
+
+	// Suffix phone matching: "+9647801112233" should match "07801112233"
+	verifiedSuffix, recSuffix, err := client.VerifyIncomingTransfer(ctx, "+9647801112233", 5000)
+	if err != nil || !verifiedSuffix || recSuffix == nil {
+		t.Fatalf("suffix matching failed: %v", err)
+	}
+
+	// Verification from Notification text extraction
+	verifiedNotif, recNotif, err := client.VerifyIncomingTransfer(ctx, "07805556677", 10000)
+	if err != nil || !verifiedNotif || recNotif == nil {
+		t.Fatalf("notification transfer verify failed: %v", err)
+	}
+	if recNotif.Amount != "15000" {
+		t.Fatalf("expected amount 15000, got %s", recNotif.Amount)
+	}
+
+	// Min amount threshold: transfer exists for 5000, but minAmount is 10000
+	verifiedLow, _, _ := client.VerifyIncomingTransfer(ctx, "07801112233", 10000)
+	if verifiedLow {
+		t.Fatalf("expected false when amount is below threshold")
+	}
+
+	// Non-existent sender
+	verifiedNone, _, _ := client.VerifyIncomingTransfer(ctx, "07800000000", 1000)
+	if verifiedNone {
+		t.Fatalf("expected false for non-existent sender")
+	}
+
+	// In-memory recorded transfer
+	client.RecordIncomingTransfer(IncomingTransferRecord{
+		MSISDN: "07807778899",
+		Amount: "50000",
+		Title:  "Manual Test Deposit",
+	})
+	verifiedMem, recMem, err := client.VerifyIncomingTransfer(ctx, "07807778899", 50000)
+	if err != nil || !verifiedMem || recMem == nil {
+		t.Fatalf("in-memory verify failed: %v", err)
+	}
+
+	// Invalid short phone number
+	_, _, errShort := client.VerifyIncomingTransfer(ctx, "12345", 1000)
+	if errShort == nil {
+		t.Fatalf("expected error for short phone number")
+	}
+}

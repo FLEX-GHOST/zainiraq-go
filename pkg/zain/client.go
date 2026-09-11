@@ -37,11 +37,13 @@ type Client struct {
 	appVersion     string
 	installationID string
 	userAgent      string
-	accessToken    string
-	refreshToken   string
-	msisdn         string
-	onTokenUpdate  func(*SessionData)
-	mu             sync.RWMutex
+	accessToken               string
+	refreshToken              string
+	msisdn                    string
+	masterWallet              string
+	recordedIncomingTransfers []IncomingTransferRecord
+	onTokenUpdate             func(*SessionData)
+	mu                        sync.RWMutex
 }
 
 func NewClient(opts ...Option) *Client {
@@ -131,6 +133,12 @@ func WithMSISDN(msisdn string) Option {
 	}
 }
 
+func WithMasterWallet(wallet string) Option {
+	return func(c *Client) {
+		c.masterWallet = wallet
+	}
+}
+
 func WithHTTPClient(client *http.Client) Option {
 	return func(c *Client) {
 		if client != nil {
@@ -175,6 +183,41 @@ func (c *Client) GetMSISDN() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.msisdn
+}
+
+func (c *Client) SetMasterWallet(wallet string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.masterWallet = wallet
+}
+
+func (c *Client) MasterWallet() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.masterWallet != "" {
+		return c.masterWallet
+	}
+	return c.msisdn
+}
+
+func (c *Client) RecordIncomingTransfer(rec IncomingTransferRecord) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.recordedIncomingTransfers = append(c.recordedIncomingTransfers, rec)
+}
+
+func (c *Client) GetRecordedIncomingTransfers() []IncomingTransferRecord {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	res := make([]IncomingTransferRecord, len(c.recordedIncomingTransfers))
+	copy(res, c.recordedIncomingTransfers)
+	return res
+}
+
+func (c *Client) ClearRecordedIncomingTransfers() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.recordedIncomingTransfers = nil
 }
 
 func (c *Client) ExportSession() *SessionData {

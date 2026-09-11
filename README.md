@@ -92,17 +92,29 @@ zainiraq-go/
   * `GetPostpaidHistory(ctx)`: سجل الفواتير والدفعات السابقة.
 * **إدارة لغة الخط**: `ChangeLanguage(ctx, lang)` لتعيين لغة الرسائل النصية والإشعارات (`ar`, `en`, `kd`).
 
-### 3. شحن الرصيد وتحويل الأموال وبوابة الدفع (Recharge, Transfer & Payments)
+### 3. شحن الرصيد وتحويل الأموال وتثبيت المحفظة (Recharge, Transfer & Master Wallet)
+* **تثبيت رقم المحفظة المعتمد (Master Wallet)**:
+  * `client.SetMasterWallet(phone)`: تثبيت رقم محفظة البوت لاستقبال التحويلات.
+  * `client.MasterWallet()`: جلب رقم المحفظة الحالي.
+  * `client.GetWalletOverview(ctx)`: نظرة شاملة لرصيد المحفظة، الصلاحية، ونوع الخط.
+  * `client.GetWalletBalance(ctx)`: استعلام رصيد المحفظة المباشر عبر `api/number/wallet`.
+* **التحقق الآلي من الحوالات الواردة ومعرفة رقم المرسل (Automated Incoming Verification)**:
+  * `client.VerifyIncomingTransfer(ctx, senderPhone, minAmount)`: فحص فوري ومطابقة تلقائية لسجلات التحويل الوارد من رقم المشترك وتأكيد دفع الطلب آلياً بدون أي تدخل بشري.
+  * `client.GetIncomingTransfers(ctx, limit)`: استخراج كافة الحوالات الواردة من بنود الفاتورة الإلكترونية (`api/number/electronic-bill-items`) وإشعارات الرسائل (`api/notifications`).
+  * `client.FormatUSSDTransfer(recipient, amount)`: توليد كود التحويل السريع لزين العراق (`*123*amount*recipient#`).
+* **تحويل الرصيد النقدي (P2P Credit Transfer)**:
+  * `client.RequestCreditTransferOTP(ctx, senderMSISDN)`: طلب كود تحقق SMS لعملية التحويل.
+  * `client.ConfirmCreditTransferOTP(ctx, otpCode, senderMSISDN)`: تأكيد الرمز واستخراج توكن التحويل.
+  * `client.CreditTransfer(ctx, recipient, amount, otpConfirmation)`: إرسال الرصيد الفعلي للمشترك الآخر.
 * **شحن كروت الرصيد الورقية**: `RechargeVoucher(ctx, voucherPIN)` لشحن الكروت ذات الـ 16 رقماً مع استلام الرصيد الجديد فورياً.
-* **تحويل الرصيد النقدي (P2P)**: `CreditTransfer(ctx, recipient, amount, otp)` لتحويل رصيد مباشر بين مشتركي زين العراق.
-* **تمديد صلاحية استقبال وإرسال الخط**: `ExtendValidity(ctx, amount)` بخصم القيمة من الرصيد الأساسي.
+* **تمديد صلاحية استقبال وإرسال الخط**: `ExtendValidity(ctx, amount)` و `GetValidityOptions(ctx)`.
 * **بوابة الدفع الإلكتروني (Card & Checkout)**:
   * `CreateCheckoutID(ctx, req)`: إنشاء معرف Checkout ID لبطاقات ماستركارد وفيزا.
   * `RefreshPaymentStatus(ctx, checkoutID)`: فحص حالة عملية الدفع والتأكد من إتمامها.
   * `SaveCard(ctx, req)`: حفظ وتشفير بيانات البطاقة لاستخدامها مستقبلاً.
   * `SetDefaultCard(ctx, cardID)` و `GetUserCards(ctx)` و `DeleteCard(ctx, cardID)`.
 * **محفظة زين كاش (ZainCash Direct Purchase)**:
-  * `CreatePurchaseOrder(ctx, req)`: إنشاء أمر شراء فوري والدفع المباشر عبر ZainCash.
+  * `InitiateZainCashPayment(ctx, req)` و `InitiateZainCashPaymentV2(ctx, req)`: بدء الدفع المباشر عبر ZainCash.
 
 ### 4. العروض والباقات ونظام فليكس (Offers, Bundles & Flex)
 * **كتالوج العروض المعتمد**: `GetOffersCMS(ctx, queryShortname)` لجلب باقات الإنترنت والمكالمات.

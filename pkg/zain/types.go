@@ -904,3 +904,72 @@ func (r *APIResponse[T]) UnmarshalJSON(data []byte) error {
 	aux := (*Alias)(r)
 	return json.Unmarshal(data, aux)
 }
+
+type IncomingTransferRecord struct {
+	MSISDN      string `json:"msisdn"`
+	Amount      string `json:"amount"`
+	CreatedAt   string `json:"created_at"`
+	Title       string `json:"title,omitempty"`
+	ServiceType string `json:"service_type,omitempty"`
+	Raw         any    `json:"raw,omitempty"`
+}
+
+type WalletOverview struct {
+	Phone    string  `json:"phone"`
+	Balance  float64 `json:"balance"`
+	Validity string  `json:"validity"`
+	BillType string  `json:"bill_type"`
+	IsActive bool    `json:"is_active"`
+}
+
+type LoyaltyPromoCode struct {
+	ID        string `json:"id"`
+	Code      string `json:"code"`
+	OfferName string `json:"offer_name"`
+	ExpiresAt string `json:"expires_at"`
+	Status    string `json:"status"`
+}
+
+type ImtiyazVoucherHistoryItem struct {
+	ID          string `json:"id"`
+	MerchantID  string `json:"merchant_id"`
+	Code        string `json:"code"`
+	RevealedAt  string `json:"revealed_at"`
+	ExpiresAt   string `json:"expires_at"`
+	DiscountVal string `json:"discount_value"`
+}
+
+type ImtiyazReportReq struct {
+	MerchantID string `json:"merchant_id"`
+	Reason     string `json:"reason"`
+	Comments   string `json:"comments,omitempty"`
+}
+
+type ImtiyazRevealResp struct {
+	MerchantID string `json:"merchant_id"`
+	Code       string `json:"code"`
+	Barcode    string `json:"barcode,omitempty"`
+	ValidUntil string `json:"valid_until"`
+}
+
+type ComplaintTemplatesResp struct {
+	Items []ComplaintTemplateItem `json:"items"`
+}
+
+type ComplaintTemplateItem struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Category    string `json:"category,omitempty"`
+}
+
+type ComplaintSummaryItem struct {
+	Code        string `json:"code"`
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+}
+
+type ComplaintReopenReason struct {
+	ID     string `json:"id"`
+	Reason string `json:"reason"`
+}

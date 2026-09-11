@@ -18,6 +18,7 @@ This directory contains production-grade, standalone examples demonstrating ever
 | **`08_payments_and_zaincash`** | Payment gateway checkout ID creation, payment status polling, tokenized cards, and ZainCash orders. | `go run examples/08_payments_and_zaincash/main.go` |
 | **`09_bundle_sharing_and_fnf`** | Family bundle sharing, adding members with MB quota, unit transfers, and Friends & Family numbers. | `go run examples/09_bundle_sharing_and_fnf/main.go` |
 | **`10_nearme_and_notifications`**| Nearest certified branches by GPS coordinates, opening hours, Iraqi cities, and inbox notifications. | `go run examples/10_nearme_and_notifications/main.go` |
+| **`11_wallet_and_incoming_transfer_verification`** | Master wallet pinning, USSD dial formatting, and automated incoming balance transfer verification. | `go run examples/11_wallet_and_incoming_transfer_verification/main.go` |
 | **`interactive_cli`** | An all-in-one terminal CLI application with an interactive text menu for all core features. | `go run examples/interactive_cli/main.go` |
 
 ---
