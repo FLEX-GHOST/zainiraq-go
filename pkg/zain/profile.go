@@ -22,6 +22,9 @@ func (c *Client) resolveMSISDN(msisdn []string) string {
 	if len(msisdn) > 0 && msisdn[0] != "" {
 		return msisdn[0]
 	}
+	if c.MasterWallet() != "" {
+		return c.MasterWallet()
+	}
 	return c.GetMSISDN()
 }
 
