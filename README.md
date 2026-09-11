@@ -286,6 +286,7 @@ func main() {
 | **`09_bundle_sharing_and_fnf`** | مشاركة الباقات العائلية، وتحديد الحصص ونقل الوحدات. | `go run examples/09_bundle_sharing_and_fnf/main.go` |
 | **`10_nearme_and_notifications`** | فروع زين القريبة، الإشعارات، والخدمات الرقمية. | `go run examples/10_nearme_and_notifications/main.go` |
 | **`11_wallet_and_incoming_transfer_verification`** | تثبيت المحفظة والتحقق الآلي من تحويلات الرصيد لبوتات التليغرام. | `go run examples/11_wallet_and_incoming_transfer_verification/main.go` |
+| **`12_daily_gift_and_rewards_automation`** | أتمتة سحب الهدايا اليومية، تحويل نقاط المكافآت، وفحص الصلاحية. | `go run examples/12_daily_gift_and_rewards_automation/main.go` |
 | **`interactive_cli`** | تطبيق تيرمينال تفاعلي شامل يتيح تجربة جميع ميزات المكتبة عبر قائمة نصية مرئية. | `go run examples/interactive_cli/main.go` |
 
 ---
