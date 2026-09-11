@@ -22,22 +22,6 @@
 
 ---
 
-## فهرس المحتويات
-
-1. [جدول نقاط النهاية المعتمدة (Endpoints Matrix)](#1-جدول-نقاط-النهاية-المعتمدة-endpoints-matrix)
-2. [البيئة، النطاقات والأمان المتقدم (Security & Environment)](#2-البيئة-النطاقات-والأمان-المتقدم-security--environment)
-3. [المصادقة وإدارة الحسابات (Authentication & Account)](#3-المصادقة-وإدارة-الحسابات-authentication--account)
-4. [الرصيد، المحفظة والفوترة الآجلة (Balance, Wallet & Billing)](#4-الرصيد-المحفظة-والفوترة-الآجلة-balance-wallet--billing)
-5. [شحن الرصيد وتحويل الأموال وبوابة الدفع (Recharge, Transfer & Payments)](#5-شحن-الرصيد-وتحويل-الأموال-وبوابة-الدفع-recharge-transfer--payments)
-6. [العروض والباقات ونظام فليكس (Offers, Bundles & Flex)](#6-العروض-والباقات-ونظام-فليكس-offers-bundles--flex)
-7. [مشاركة الباقات والأرقام العائلية (Bundle Sharing & FNF)](#7-مشاركة-الباقات-والأرقام-العائلية-bundle-sharing--fnf)
-8. [برنامج المكافآت ونقاط امتياز (Loyalty & Imtiyaz)](#8-برنامج-المكافآت-ونقاط-امتياز-loyalty--imtiyaz)
-9. [مركز الدعم وتتبع الشكاوى الفنية (Support & Complaints)](#9-مركز-الدعم-وتتبع-الشكاوى-الفنية-support--complaints)
-10. [لوحة التحكم والإشعارات والمتاجر القريبة (Dashboard, Notifications & Near Me)](#10-لوحة-التحكم-والإشعارات-والمتاجر-القريبة-dashboard-notifications--near-me)
-11. [محرك استعلامات المحتوى CMS (Direct CMS Query Engine)](#11-محرك-استعلامات-المحتوى-cms-direct-cms-query-engine)
-
----
-
 ## 1. جدول نقاط النهاية المعتمدة (Endpoints Matrix)
 
 | # | الطريقة | المسار (Endpoint Path) | دالة Go SDK المقابلة | الوصف التفصيلي باللغة العربية |
