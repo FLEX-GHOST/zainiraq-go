@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="assets/zain.svg" alt="Zain Iraq Logo" width="360" />
+<img src="assets/zain_icon.png" alt="Zain Iraq App Icon" width="105" />
+<br />
+<img src="assets/zain.svg" alt="Zain Iraq Logo" width="280" />
 
 # zainiraq-go
 
