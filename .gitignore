@@ -17,7 +17,3 @@ tmp/
 .idea/
 .vscode/
 *.log
-
-# Internal rules
-.agents/
-anti_slop_official_rules/

@@ -1,3 +1,3 @@
-module github.com/FLEX-GHOST/zain-go
+module github.com/FLEX-GHOST/zainiraq-go
 
 go 1.26.5
