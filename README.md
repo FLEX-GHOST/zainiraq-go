@@ -297,80 +297,39 @@ func main() {
 
 ---
 
-## تشغيل واجهة سطر الأوامر التفاعلية (Interactive CLI)
+## دليل الأمثلة الجاهزة (Examples Suite)
 
-تحتوي المكتبة على أداة تفاعلية متكاملة في مجلد `examples/interactive_cli`:
+| المجلد | الوصف | أمر التشغيل المباشر |
+| :--- | :--- | :--- |
+| **`01_otp_login`** | تسجيل الدخول عبر رمز التحقق SMS، حفظ الجلسة واستعادتها. | `go run examples/01_otp_login/main.go` |
+| **`02_account_and_profile`** | الاستعلام عن الرصيد، تفاصيل الحساب، والحصص الفعالة. | `go run examples/02_account_and_profile/main.go` |
+| **`03_recharge_and_transfer`** | شحن الرصيد بكروت التعبئة، تحويل الرصيد بالـ OTP، وتمديد الصلاحية. | `go run examples/03_recharge_and_transfer/main.go` |
+| **`04_bundles_and_offers`** | استعراض الباقات، العروض المخصصة، ونظام فليكس. | `go run examples/04_bundles_and_offers/main.go` |
+| **`05_loyalty_and_imtiyaz`** | نقاط برنامج المكافآت، استبدال النقاط، وعروض امتياز. | `go run examples/05_loyalty_and_imtiyaz/main.go` |
+| **`06_support_and_tickets`** | تذاكر الدعم الفني، إرفاق الصور، وتتبع المعالجة. | `go run examples/06_support_and_tickets/main.go` |
+| **`07_cms_content_queries`** | استعلامات محرك المحتوى CMS لكتالوج العروض والضبط. | `go run examples/07_cms_content_queries/main.go` |
+| **`08_payments_and_zaincash`** | بوابات الدفع الإلكتروني، البطاقات، ومحفظة زين كاش. | `go run examples/08_payments_and_zaincash/main.go` |
+| **`09_bundle_sharing_and_fnf`** | مشاركة الباقات العائلية، وتحديد الحصص ونقل الوحدات. | `go run examples/09_bundle_sharing_and_fnf/main.go` |
+| **`10_nearme_and_notifications`** | فروع زين القريبة، الإشعارات، والخدمات الرقمية. | `go run examples/10_nearme_and_notifications/main.go` |
+| **`11_wallet_and_incoming_transfer_verification`** | تثبيت المحفظة والتحقق الآلي من تحويلات الرصيد لبوتات التليغرام. | `go run examples/11_wallet_and_incoming_transfer_verification/main.go` |
+| **`interactive_cli`** | تطبيق تيرمينال تفاعلي شامل يتيح تجربة جميع ميزات المكتبة عبر قائمة نصية مرئية. | `go run examples/interactive_cli/main.go` |
+
+---
+
+## الاختبارات وضمان الجودة (Testing & Quality)
 
 ```bash
-cd examples/interactive_cli
-go run main.go
-```
+# تشغيل جميع اختبارات الحزمة
+go test -v ./...
 
-توفر الأداة قائمة تفاعلية سهلة الاستخدام لإدارة جميع عمليات الحساب:
-```text
-========================================
-   Zain Iraq API - Interactive CLI
-========================================
-1.  Request OTP
-2.  Verify OTP & Login
-3.  Load Session from File
-4.  Get Profile
-5.  Get Balance
-6.  Get Subaccounts
-7.  Claim Daily Gift
-8.  Get Loyalty Info
-9.  Get Notifications
-10. Exit
-========================================
-Select option (1-10):
+# التحقق من فحص مفسر Go القياسي
+go vet ./...
 ```
 
 ---
 
-## اختبارات الوحدة والتحقق (Verification & Tests)
+## الترخيص وإخلاء المسؤولية (License & Legal Disclaimer)
 
-تم بناء وتمرير حزمة اختبارات شاملة تغطي كافة مسارات المنطق وهياكل البيانات:
-
-```bash
-go test -v ./pkg/zain/...
-```
-
-**النتيجة**:
-```text
-=== RUN   TestClientOptionsAndHeaders
---- PASS: TestClientOptionsAndHeaders (0.01s)
-=== RUN   TestAuthFlow
---- PASS: TestAuthFlow (0.00s)
-=== RUN   TestProfileAndBalance
---- PASS: TestProfileAndBalance (0.00s)
-=== RUN   TestRechargeAndTransfer
---- PASS: TestRechargeAndTransfer (0.00s)
-=== RUN   TestServicesOffersAndSharing
---- PASS: TestServicesOffersAndSharing (0.00s)
-=== RUN   TestLoyaltyAndImtiyaz
---- PASS: TestLoyaltyAndImtiyaz (0.01s)
-=== RUN   TestPaymentsAndGateway
---- PASS: TestPaymentsAndGateway (0.00s)
-=== RUN   TestDashboardAndSupport
---- PASS: TestDashboardAndSupport (0.01s)
-=== RUN   TestCMSContent
---- PASS: TestCMSContent (0.00s)
-=== RUN   TestLokaliseTextString
---- PASS: TestLokaliseTextString (0.00s)
-=== RUN   TestSessionDataExpiry
---- PASS: TestSessionDataExpiry (0.00s)
-PASS
-ok      github.com/FLEX-GHOST/zainiraq-go/pkg/zain      0.080s
-```
-
----
-
-## إخلاء المسؤولية (Disclaimer)
-
-هذا المشروع غير تابع رسمياً لشركة زين العراق (Zain Iraq) أو مجموعة زين (Zain Group). جميع العلامات التجارية والشعارات وحقوق الملكية الفكرية هي ملك لأصحابها الشرعيين. تم تطوير هذه المكتبة وتوثيقها لأغراض البحث العلمي والهندسة العكسية المشروعة ودمج الأنظمة البرمجية الموزعة وبوتات التلغرام.
-
----
-
-## الترخيص (License)
-
-هذا المشروع مرخص بموجب رخصة [MIT License](LICENSE).
+- **الترخيص**: هذا المشروع مرخص ومفتوح المصدر بموجب رخصة [MIT](LICENSE).
+- **العلامة التجارية**: اسم "Zain" وشعارها علامتان تجاريتان مسجلتان لمجموعة زين للاتصالات (Zain Group).
+- **إخلاء المسؤولية**: هذا المشروع (`zainiraq-go`) هو مكتبة برمجية مستقلة غير رسمية تم تطويرها لأغراض تعليمية وتطويرية، وليست تابعة لشركة زين العراق أو معتمدة منها بشكل رسمي.
