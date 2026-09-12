@@ -259,6 +259,160 @@ func main() {
 	fmt.Printf("الرصيد الحالي: %d د.ع\n", balance.Balance.Value)
 	fmt.Printf("تاريخ الصلاحية: %s\n", balance.Balance.Expiry)
 }
+
+### 4. شحن كارت الرصيد الورقي (Voucher Card Recharge)
+
+شحن كروت الرصيد المكونة من 16 رقماً مع التحقق من نجاح العملية:
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/FLEX-GHOST/zainiraq-go/pkg/zain"
+)
+
+func main() {
+	client, err := zain.NewClient()
+	if err != nil {
+		log.Fatalf("client error: %v", err)
+	}
+
+	if err := client.LoadSessionFromFile("session.json"); err != nil {
+		log.Fatalf("session load error: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// كارت شحن زين العراق (16 رقماً)
+	voucherPIN := "1234567890123456"
+
+	// شحن الكارت على رقم الخط المسجل
+	if err := client.RechargeVoucher(ctx, voucherPIN); err != nil {
+		log.Fatalf("فشل شحن الكارت: %v", err)
+	}
+	fmt.Println("تم شحن كارت الرصيد بنجاح!")
+
+	// فحص الرصيد الجديد المحدث
+	balance, err := client.GetBalance(ctx)
+	if err == nil {
+		fmt.Printf("الرصيد الجديد: %d د.ع | الصلاحية: %s\n",
+			balance.Balance.Value, balance.Balance.Expiry)
+	}
+}
+```
+
+### 5. تحويل الرصيد المباشر بالـ OTP (P2P Credit Transfer)
+
+دورة تحويل رصيد من الشريحة لرقم آخر عبر كود التحقق SMS:
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/FLEX-GHOST/zainiraq-go/pkg/zain"
+)
+
+func main() {
+	client, err := zain.NewClient()
+	if err != nil {
+		log.Fatalf("client error: %v", err)
+	}
+
+	if err := client.LoadSessionFromFile("session.json"); err != nil {
+		log.Fatalf("session load error: %v", err)
+	}
+
+	ctx := context.Background()
+	senderPhone := client.GetMSISDN()
+	recipientPhone := "07809876543"
+	amountIQD := int64(2000)
+
+	// 1. طلب رمز التحقق SMS لعملية التحويل
+	otpResp, err := client.RequestCreditTransferOTP(ctx, senderPhone)
+	if err != nil {
+		log.Fatalf("فشل طلب رمز التحويل: %v", err)
+	}
+	fmt.Printf("تم إرسال رمز التأكيد SMS! Request ID: %s\n", otpResp.Data.RequestID)
+
+	// 2. تأكيد الرمز المستلم واستخراج توكن التأكيد
+	smsCode := "123456"
+	confResp, err := client.ConfirmCreditTransferOTP(ctx, smsCode, senderPhone)
+	if err != nil {
+		log.Fatalf("فشل تأكيد الرمز: %v", err)
+	}
+
+	// 3. إتمام عملية تحويل الرصيد
+	if err := client.CreditTransfer(ctx, recipientPhone, amountIQD, confResp.Data.ConfirmationID); err != nil {
+		log.Fatalf("فشل تحويل الرصيد: %v", err)
+	}
+
+	fmt.Printf("تم تحويل %d د.ع إلى الرقم %s بنجاح!\n", amountIQD, recipientPhone)
+}
+```
+
+### 6. التحقق الآلي من الحوالات الواردة لبوتات التليجرام (مثل بوتات آسيا سيل)
+
+التحقق التلقائي والفوري من تحويلات الرصيد الواردة من الزبائن دون الحاجة لتسجيل دخول الزبون (عبر مطابقة رقم الهاتف وسجل الفاتورة الإلكترونية والإشعارات):
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/FLEX-GHOST/zainiraq-go/pkg/zain"
+)
+
+func main() {
+	client, err := zain.NewClient()
+	if err != nil {
+		log.Fatalf("client error: %v", err)
+	}
+
+	// تسجيل الدخول بجلسة المحفظة المعتمدة
+	if err := client.LoadSessionFromFile("session.json"); err != nil {
+		log.Fatalf("session load error: %v", err)
+	}
+
+	// 1. تثبيت رقم محفظة البوت المعتمد
+	masterWallet := "07801234567"
+	client.SetMasterWallet(masterWallet)
+
+	ctx := context.Background()
+
+	// 2. توليد كود التحويل السريع للزبون (USSD Dial Code)
+	customerPhone := "07809876543"
+	requiredAmount := 5000.0 // 5,000 د.ع
+	ussdCode := client.FormatUSSDTransfer(masterWallet, int64(requiredAmount))
+	fmt.Printf("أرسل للزبون كود التحويل التالي: %s\n", ussdCode)
+
+	// 3. التحقق الآلي الفوري بدون أي تدخل بشري
+	fmt.Printf("جاري فحص وصول حوالة من %s بمبلغ لا يقل عن %.0f د.ع...\n", customerPhone, requiredAmount)
+	verified, record, err := client.VerifyIncomingTransfer(ctx, customerPhone, requiredAmount)
+	if err != nil {
+		log.Fatalf("خطأ أثناء التحقق: %v", err)
+	}
+
+	if verified && record != nil {
+		fmt.Printf("تم تأكيد دفع الطلب آلياً وبنجاح!\n")
+		fmt.Printf("   المرسل: %s\n", record.MSISDN)
+		fmt.Printf("   المبلغ: %s د.ع\n", record.Amount)
+		fmt.Printf("   التاريخ والوقت: %s\n", record.CreatedAt)
+	} else {
+		fmt.Println("لم تصل الحوالة بعد، أو المبلغ المدفوع غير كافٍ.")
+	}
+}
+```
 ```
 
 ---
@@ -280,16 +434,17 @@ func main() {
 | :--- | :--- | :--- |
 | **`01_otp_login`** | تسجيل الدخول عبر رمز التحقق SMS، حفظ الجلسة واستعادتها. | `go run examples/01_otp_login/main.go` |
 | **`02_account_and_profile`** | الاستعلام عن الرصيد، تفاصيل الحساب، والحصص الفعالة. | `go run examples/02_account_and_profile/main.go` |
-| **`03_recharge_and_transfer`** | شحن الرصيد بكروت التعبئة، تحويل الرصيد بالـ OTP، وتمديد الصلاحية. | `go run examples/03_recharge_and_transfer/main.go` |
-| **`04_bundles_and_offers`** | استعراض الباقات، العروض المخصصة، ونظام فليكس. | `go run examples/04_bundles_and_offers/main.go` |
-| **`05_loyalty_and_imtiyaz`** | نقاط برنامج المكافآت، استبدال النقاط، وعروض امتياز. | `go run examples/05_loyalty_and_imtiyaz/main.go` |
-| **`06_support_and_tickets`** | تذاكر الدعم الفني، إرفاق الصور، وتتبع المعالجة. | `go run examples/06_support_and_tickets/main.go` |
-| **`07_cms_content_queries`** | استعلامات محرك المحتوى CMS لكتالوج العروض والضبط. | `go run examples/07_cms_content_queries/main.go` |
-| **`08_payments_and_zaincash`** | بوابات الدفع الإلكتروني، البطاقات، ومحفظة زين كاش. | `go run examples/08_payments_and_zaincash/main.go` |
-| **`09_bundle_sharing_and_fnf`** | مشاركة الباقات العائلية، وتحديد الحصص ونقل الوحدات. | `go run examples/09_bundle_sharing_and_fnf/main.go` |
-| **`10_nearme_and_notifications`** | فروع زين القريبة، الإشعارات، والخدمات الرقمية. | `go run examples/10_nearme_and_notifications/main.go` |
-| **`11_wallet_and_incoming_transfer_verification`** | تثبيت المحفظة والتحقق الآلي من تحويلات الرصيد لبوتات التليغرام. | `go run examples/11_wallet_and_incoming_transfer_verification/main.go` |
-| **`12_daily_gift_and_rewards_automation`** | أتمتة سحب الهدايا اليومية، تحويل نقاط المكافآت، وفحص الصلاحية. | `go run examples/12_daily_gift_and_rewards_automation/main.go` |
+| **`03_bundles_and_offers`** | استعراض الباقات، العروض المخصصة، ونظام فليكس. | `go run examples/03_bundles_and_offers/main.go` |
+| **`04_credit_transfer`** | تحويل الرصيد وتأكيده بالـ OTP، توليد كود الـ USSD، والتحقق الآلي. | `go run examples/04_credit_transfer/main.go` |
+| **`05_recharge_voucher`** | شحن الرصيد بكروت التعبئة المكونة من 16 رقماً، وخيارات تمديد الصلاحية. | `go run examples/05_recharge_voucher/main.go` |
+| **`06_loyalty_and_imtiyaz`** | نقاط برنامج المكافآت، استبدال النقاط، وعروض امتياز. | `go run examples/06_loyalty_and_imtiyaz/main.go` |
+| **`07_support_and_tickets`** | تذاكر الدعم الفني، إرفاق الصور، وتتبع المعالجة. | `go run examples/07_support_and_tickets/main.go` |
+| **`08_cms_content_queries`** | استعلامات محرك المحتوى CMS لكتالوج العروض والضبط. | `go run examples/08_cms_content_queries/main.go` |
+| **`09_payments_and_zaincash`** | بوابات الدفع الإلكتروني، البطاقات، ومحفظة زين كاش. | `go run examples/09_payments_and_zaincash/main.go` |
+| **`10_bundle_sharing_and_fnf`** | مشاركة الباقات العائلية، وتحديد الحصص ونقل الوحدات. | `go run examples/10_bundle_sharing_and_fnf/main.go` |
+| **`11_nearme_and_notifications`** | فروع زين القريبة، الإشعارات، والخدمات الرقمية. | `go run examples/11_nearme_and_notifications/main.go` |
+| **`12_wallet_and_incoming_transfer_verification`** | تثبيت المحفظة والتحقق الآلي من تحويلات الرصيد لبوتات التليجرام. | `go run examples/12_wallet_and_incoming_transfer_verification/main.go` |
+| **`13_daily_gift_and_rewards_automation`** | أتمتة سحب الهدايا اليومية، تحويل نقاط المكافآت، وفحص الصلاحية. | `go run examples/13_daily_gift_and_rewards_automation/main.go` |
 | **`interactive_cli`** | تطبيق تيرمينال تفاعلي شامل يتيح تجربة جميع ميزات المكتبة عبر قائمة نصية مرئية. | `go run examples/interactive_cli/main.go` |
 
 ---

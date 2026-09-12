@@ -50,9 +50,9 @@
 | **23** | `GET` | `/api/number/advance-payment` | `client.GetAdvancePayment(ctx)` | تفاصيل المبالغ المدفوعة مقدماً ورصيد التسديد المستقبلي |
 | **24** | `POST` | `/api/number/change-language` | `client.ChangeLanguage(ctx, lang)` | تغيير لغة الإشعارات والرسائل النصية للنظام (عربي، كردي، إنكليزي) |
 | **25** | `GET` | `/api/number/electronic-bill-items` | `client.GetElectronicBillItems(ctx)` | استعلام بنود الفاتورة الإلكترونية المعتمدة للطباعة والتوثيق |
-| **26** | `POST` | `/api/payment/voucher` | `client.RechargeVoucher(ctx, pin)` | شحن وتعبئة الرصيد بكارت الشحن الورقي (16 رقماً) |
-| **27** | `POST` | `/api/payment/credit-transfer` | `client.CreditTransfer(ctx, to, amt, otp)` | تحويل رصيد نقدي من رقم إلى رقم آخر في شبكة زين العراق |
-| **28** | `POST` | `/api/payment/validity-extension` | `client.ExtendValidity(ctx, amount)` | تمديد صلاحية استقبال وإرسال الخط بخصم من الرصيد |
+| **26** | `POST` | `/api/number/charge-voucher` | `client.RechargeVoucher(ctx, pin)` | شحن وتعبئة الرصيد بكارت الشحن الورقي (16 رقماً) |
+| **27** | `POST` | `/api/number/credit-transfer` | `client.CreditTransfer(ctx, to, amt, otp)` | تحويل رصيد نقدي من رقم إلى رقم آخر في شبكة زين العراق |
+| **28** | `POST` | `/api/number/extend-validity` | `client.ExtendValidity(ctx, amount)` | تمديد صلاحية استقبال وإرسال الخط بخصم من الرصيد |
 | **29** | `POST` | `/api/payment/create-checkout-id` | `client.CreateCheckoutID(ctx, req)` | توليد معرّف الدفع Checkout ID لبوابة الدفع الإلكتروني والبطاقات |
 | **30** | `POST` | `/api/payment/refresh-payment-status` | `client.RefreshPaymentStatus(ctx, chkId)` | التحقق من نجاح أو فشل معاملة الدفع الإلكتروني بعد اكتمالها |
 | **31** | `POST` | `/api/payment/save-card` | `client.SaveCard(ctx, req)` | حفظ بطاقة الدفع (ماستركارد/فيزا) المشفرة لاستخدامها مستقبلاً |
@@ -335,15 +335,16 @@ sha256/i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=
 
 ## 5. شحن الرصيد وتحويل الأموال وبوابة الدفع (Recharge, Transfer & Payments)
 
-### 5.1 شحن الرصيد بكارت الشحن (Recharge Voucher)
-* **المسار**: `POST /api/payment/voucher`
-* **دالة Go SDK**: `client.RechargeVoucher(ctx, "1234567890123456")`
+### 5.1 شحن الرصيد بكارت الشحن الورقي (Recharge Voucher)
+* **المسار**: `POST /api/number/charge-voucher`
+* **دالة Go SDK**: `client.RechargeVoucher(ctx, "1234567890123456")` أو برقم مخصص `client.RechargeVoucher(ctx, pin, targetPhone)`
+* **الغرض**: شحن وتعبئة الرصيد بكروت زين العراق المكونة من 16 رقماً مع إضافة الرصيد وتمديد الصلاحية فورياً.
 
 **طلب JSON**:
 ```json
 {
-  "msisdn": "7845900162",
-  "voucher_number": "1234567890123456"
+  "msisdn": "9647801234567",
+  "pincode": "1234567890123456"
 }
 ```
 
@@ -361,37 +362,133 @@ sha256/i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=
 
 ---
 
-### 5.2 تحويل رصيد نقدي بين الخطوط (Credit Transfer)
-* **المسار**: `POST /api/payment/credit-transfer`
-* **دالة Go SDK**: `client.CreditTransfer(ctx, "7801234567", 5000, "")`
+### 5.2 تحويل رصيد نقدي بين الخطوط (P2P Credit Transfer)
+تتكون دورة تحويل الرصيد الرسمية من خوادم زين العراق من 3 خطوات أمنية:
+
+#### أ. طلب كود تأكيد التحويل (Request OTP):
+* **المسار**: `POST /api/otp/request`
+* **دالة Go SDK**: `client.RequestCreditTransferOTP(ctx, senderPhone)`
 
 **طلب JSON**:
 ```json
 {
-  "sender": "7845900162",
-  "recipient": "7801234567",
+  "msisdn": "9647801234567",
+  "service": "credit_transfer"
+}
+```
+
+**استجابة الخادم**:
+```json
+{
+  "status": "success",
+  "data": {
+    "request_id": "req-transfer-889900"
+  }
+}
+```
+
+#### ب. تأكيد الرمز واستخراج توكن التحويل (Confirm OTP):
+* **المسار**: `POST /api/otp/confirm`
+* **دالة Go SDK**: `client.ConfirmCreditTransferOTP(ctx, "123456", senderPhone)`
+
+**طلب JSON**:
+```json
+{
+  "msisdn": "9647801234567",
+  "code": "123456"
+}
+```
+
+**استجابة الخادم**:
+```json
+{
+  "status": "success",
+  "data": {
+    "confirmation_id": "conf-tok-credit-transfer-xyz"
+  }
+}
+```
+
+#### ج. تنفيذ التحويل النهائي (Execute Transfer):
+* **المسار**: `POST /api/number/credit-transfer`
+* **دالة Go SDK**: `client.CreditTransfer(ctx, recipientPhone, amountIQD, confirmationID)`
+
+**طلب JSON**:
+```json
+{
+  "sender": "9647801234567",
+  "recipient": "9647809876543",
   "amount": 5000,
-  "otp": ""
+  "otp": "conf-tok-credit-transfer-xyz"
 }
 ```
 
 ---
 
-### 5.3 تمديد صلاحية الخط (Extend Validity)
-* **المسار**: `POST /api/payment/validity-extension`
+### 5.3 التحقق الآلي من الحوالات الواردة ومعرفة رقم المرسل (Automated Incoming Verification)
+
+ميزة هندسية مدمجة في مكتبة Go لبوتات التليجرام ومتاجر الدفع الإلكتروني تتيح التحقق التلقائي والفوري من دفع الزبائن بدون الحاجة لتسجيل دخول الزبون، وبدون أي تدخل يدوي للأدمن:
+
+* **تثبيت رقم المحفظة**: `client.SetMasterWallet("07801234567")`
+* **توليد كود الـ USSD السريع للمشترك**: `client.FormatUSSDTransfer(masterWallet, amount)` (يولد `*123*amount*recipient#`).
+* **التحقق الفوري المباشر**: `client.VerifyIncomingTransfer(ctx, senderPhone, minAmount)`
+* **الانتظار الذكي حتى وصول الحوالة**: `client.WaitForIncomingTransfer(ctx, senderPhone, minAmount, 3*time.Second)`
+
+#### المسارات السحابية المستخدمة داخلياً:
+1. `GET /api/number/wallet`: استعلام رصيد المحفظة الحالي والحالة.
+2. `POST /api/number/electronic-bill-items`: فحص سجل كشف الفاتورة الإلكترونية المعتمدة لاستخراج رقم المرسل الحقيقي (`BNumber`) ومبلغ الحوالة وتاريخها بالدقيقة والثانية.
+3. `GET /api/notifications`: مسح إشعارات التطبيق السحابية لاستخراج رسائل استلام الرصيد (`received credit`) ومطابقة المبلغ والرقم عبر Regex تلقائياً.
+
+#### خوارزمية التحقق التلقائي المدمجة (`VerifyIncomingTransfer`):
+- تقوم دالة الـ SDK بالاستعلام المزدوج الذكي: فحص سجل الفاتورة الإلكترونية (`api/number/electronic-bill-items`) مع سجل إشعارات استلام الرصيد (`api/notifications`) وسجل المعاملات الداخلي (`GetRecordedIncomingTransfers`).
+- **مطابقة أرقام الهواتف الذكية**: تطابق رقم هاتف المرسل بمقارنة **آخر 9 أرقام** لتجاوز كافة اختلافات الصيغ (مثل `078XXXXXXXX` أو `78XXXXXXXX` أو `96478XXXXXXXX` أو `+96478XXXXXXXX`).
+- **معالجة الأرقام الشرقية**: تحويل تلقائي للأرقام المكتوبة بالصيغة الشرقية (`٠١٢٣٤٥٦٧٨٩`) إلى الصيغة الرقمية القياسية.
+- **التحقق من القيمة المالية**: التأكد من أن المبلغ المحول مساوٍ أو أكبر من القيمة المطلوبة لمنع الاحتيال وضمان إتمام الطلب آلياً 100%.
+
+---
+
+### 5.4 تمديد صلاحية الخط واستعلام الخيارات (Extend Line Validity & Options)
+
+#### أ. استعلام خيارات وأسعار الصلاحية المتاحة:
+* **المسار**: `GET /api/number/validity-options`
+* **دالة Go SDK**: `client.GetValidityOptions(ctx)`
+
+**استجابة خادم زين**:
+```json
+{
+  "status": "success",
+  "data": {
+    "validity_options": [
+      {
+        "duration": "7 Days",
+        "price": "1000",
+        "title": "تمديد 7 أيام"
+      },
+      {
+        "duration": "30 Days",
+        "price": "3000",
+        "title": "تمديد 30 يوماً"
+      }
+    ]
+  }
+}
+```
+
+#### ب. تمديد الصلاحية برصيد الحساب:
+* **المسار**: `POST /api/number/extend-validity`
 * **دالة Go SDK**: `client.ExtendValidity(ctx, 3000)`
 
 **طلب JSON**:
 ```json
 {
-  "msisdn": "7845900162",
+  "msisdn": "9647801234567",
   "amount": 3000
 }
 ```
 
 ---
 
-### 5.4 إنشاء معرّف الدفع بالبطاقات (Create Checkout ID)
+### 5.5 إنشاء معرّف الدفع بالبطاقات (Create Checkout ID)
 * **المسار**: `POST /api/payment/create-checkout-id`
 * **دالة Go SDK**: `client.CreateCheckoutID(ctx, req)`
 
@@ -413,6 +510,23 @@ sha256/i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=
   "data": {
     "checkout_id": "B12C34D56E78F90A1B2C3D4E5F67890A.prod01-vm-tx02"
   }
+}
+```
+
+---
+
+### 5.6 محفظة زين كاش والدفع المباشر (ZainCash Payment Orders)
+* **المسار**: `POST /api/payment/purchase-order`
+* **دالة Go SDK**: `client.CreatePurchaseOrder(ctx, req)`
+* **الغرض**: إنشاء أمر دفع فوري عبر محفظة زين كاش (ZainCash) لخصم المبلغ من محفظة المشترك.
+
+**طلب JSON**:
+```json
+{
+  "order_id": "ORD-ZAIN-99221",
+  "amount": 15000,
+  "service_type": "bundle_purchase",
+  "msisdn": "9647801234567"
 }
 ```
 
