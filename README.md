@@ -80,10 +80,11 @@ zainiraq-go/
 
 ### 3. كشف الحساب والتحقق التلقائي من تحويلات الرصيد بدون تسجيل دخول (CDR & Transfer Verification)
 * **كشف حساب تحويلات الرصيد (CDR)**: `GetIncomingTransfers(ctx, limit)` أو `GetCDRTransferHistory(ctx, limit)` و `GetElectronicBillItems(ctx)` لجلب السجل الحقيقي لتحويلات الرصيد الواردة للشريحة مع رقم المرسل والمبلغ والتاريخ الدقيق بالثانية.
-* **التحقق التلقائي المباشر لبوتات التليجرام**: `VerifyIncomingTransfer(ctx, senderPhone, minAmount)` للتحقق البرمجي التلقائي والفوري من استلام حوالة رصيد من زبون **دون الحاجة لتسجيل دخول الزبون** وبدون أي تدخل يدوي للأدمن (الشريحة تفحص السجل تلقائياً وتتأكد من رقم المرسل والمبلغ وتفعل الطلب).
+* **التحقق التلقائي المباشر للأنظمة والبوتات**: `VerifyIncomingTransfer(ctx, senderPhone, minAmount)` للتحقق البرمجي التلقائي والفوري من استلام حوالة رصيد من زبون **دون الحاجة لتسجيل دخول الزبون** وبدون أي تدخل يدوي للأدمن (الشريحة تفحص السجل تلقائياً وتتأكد من رقم المرسل والمبلغ وتفعل الطلب).
+* **معالجة وقراءة رسائل الـ SMS تلقائياً**: `zain.ParseTransferSMS(smsText)` لاستخراج رقم المرسل والمبلغ من نصوص رسائل زين (بالأرقام العربية والإنجليزية)، و `client.RecordIncomingTransferFromSMS(smsText)` لتسجيلها فورياً في سجل المطابقة المباشرة.
 * **الانتظار الذكي للحوالة (Smart Polling)**: `WaitForIncomingTransfer(ctx, senderPhone, minAmount, interval)` للانتظار والفحص المتكرر حتى وصول الحوالة فعلياً وتأكيد دفع الطلب.
 * **تثبيت رقم المحفظة المعتمد (Master Wallet)**:
-  * `client.SetMasterWallet(phone)`: تثبيت رقم محفظة البوت لاستقبال التحويلات.
+  * `client.SetMasterWallet(phone)`: تثبيت رقم محفظة النظام لاستقبال التحويلات.
   * `client.MasterWallet()`: جلب رقم المحفظة الحالي.
   * `client.GetWalletOverview(ctx)`: نظرة شاملة لرصيد المحفظة، الصلاحية، ونوع الخط.
   * `client.GetWalletBalance(ctx)`: استعلام رصيد المحفظة المباشر عبر `api/number/wallet`.
@@ -444,6 +445,7 @@ func main() {
 | **`11_nearme_and_notifications`** | فروع زين القريبة، الإشعارات، والخدمات الرقمية. | `go run examples/11_nearme_and_notifications/main.go` |
 | **`12_wallet_and_incoming_transfer_verification`** | تثبيت المحفظة والتحقق الآلي من تحويلات الرصيد لبوتات التليجرام. | `go run examples/12_wallet_and_incoming_transfer_verification/main.go` |
 | **`13_daily_gift_and_rewards_automation`** | أتمتة سحب الهدايا اليومية، تحويل نقاط المكافآت، وفحص الصلاحية. | `go run examples/13_daily_gift_and_rewards_automation/main.go` |
+| **`14_automated_transfer_matching`** | التحقق الآلي من استلام الرصيد ومطابقته فورياً من الرسائل والكشف السحابي ومنع التكرار. | `go run examples/14_automated_transfer_matching/main.go` |
 | **`interactive_cli`** | تطبيق تيرمينال تفاعلي شامل يتيح تجربة جميع ميزات المكتبة عبر قائمة نصية مرئية. | `go run examples/interactive_cli/main.go` |
 
 ---

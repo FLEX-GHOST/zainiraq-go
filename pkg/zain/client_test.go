@@ -1402,4 +1402,71 @@ func TestSystemAndSIMMethods(t *testing.T) {
 	}
 }
 
+func TestParseTransferSMS(t *testing.T) {
+	cases := []struct {
+		name        string
+		sms         string
+		expectPhone string
+		expectAmt   string
+		shouldErr   bool
+	}{
+		{
+			name:        "Standard Zain Arabic SMS",
+			sms:         "تم استلام رصيد بقيمة 5,000 د.ع من الرقم 07801234567 بنجاح",
+			expectPhone: "07801234567",
+			expectAmt:   "5000",
+			shouldErr:   false,
+		},
+		{
+			name:        "Eastern Arabic Numerals SMS",
+			sms:         "تم تحويل مبلغ ٥٠٠٠ دينار من الرقم ٠٧٨٠٩٨٧٦٥٤٣",
+			expectPhone: "07809876543",
+			expectAmt:   "5000",
+			shouldErr:   false,
+		},
+		{
+			name:        "International format Zain SMS",
+			sms:         "You have received 10,000 IQD credit from 9647805554433",
+			expectPhone: "9647805554433",
+			expectAmt:   "10000",
+			shouldErr:   false,
+		},
+		{
+			name:      "Irrelevant spam SMS",
+			sms:       "عزيزي المشترك، اشترك الآن في باقة الإنترنت اليومية",
+			shouldErr: true,
+		},
+	}
+
+	client := NewClient()
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec, err := ParseTransferSMS(tc.sms)
+			if tc.shouldErr {
+				if err == nil {
+					t.Fatalf("expected error for %s, got nil", tc.name)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error for %s: %v", tc.name, err)
+			}
+			if rec.MSISDN != tc.expectPhone || rec.Amount != tc.expectAmt {
+				t.Errorf("expected phone %s amt %s, got phone %s amt %s", tc.expectPhone, tc.expectAmt, rec.MSISDN, rec.Amount)
+			}
+
+			// Test client recording and matching
+			_, err = client.RecordIncomingTransferFromSMS(tc.sms)
+			if err != nil {
+				t.Fatalf("RecordIncomingTransferFromSMS failed: %v", err)
+			}
+			ok, matched, err := client.VerifyIncomingTransfer(context.Background(), tc.expectPhone, 1000)
+			if err != nil || !ok || matched == nil {
+				t.Fatalf("VerifyIncomingTransfer failed to match recorded SMS: %v", err)
+			}
+		})
+	}
+}
+
+
 

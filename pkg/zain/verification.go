@@ -272,3 +272,61 @@ func (c *Client) WaitForIncomingTransfer(ctx context.Context, senderPhone string
 		}
 	}
 }
+
+// ParseTransferSMS parses an incoming credit transfer SMS text (received via SMS gateway, Android SMS listener, or GSM modem)
+// and extracts the sender phone number and transferred amount.
+// Supported formats include Arabic and English Zain SMS templates:
+// - "تم استلام رصيد بقيمة 5,000 د.ع من الرقم 07801234567 بنجاح"
+// - "تم تحويل مبلغ 10000 دينار من الرقم 9647801234567"
+// - "You have received 5,000 IQD from 07801234567"
+func ParseTransferSMS(smsText string) (*IncomingTransferRecord, error) {
+	if strings.TrimSpace(smsText) == "" {
+		return nil, fmt.Errorf("zain: empty sms text")
+	}
+
+	converted := convertEasternNumerals(smsText)
+	lower := strings.ToLower(converted)
+
+	isTransfer := strings.Contains(converted, "تحويل") ||
+		strings.Contains(converted, "استلام") ||
+		strings.Contains(converted, "استلمت") ||
+		strings.Contains(converted, "رصيد") ||
+		strings.Contains(lower, "transfer") ||
+		strings.Contains(lower, "received") ||
+		strings.Contains(lower, "credit")
+
+	if !isTransfer {
+		return nil, fmt.Errorf("zain: message is not a recognized credit transfer sms")
+	}
+
+	phoneMatch := phoneRegex.FindString(converted)
+	if phoneMatch == "" {
+		return nil, fmt.Errorf("zain: no sender phone number found in sms")
+	}
+
+	amt := parseAmountString(converted)
+	if amt <= 0 {
+		return nil, fmt.Errorf("zain: no valid transfer amount found in sms")
+	}
+
+	return &IncomingTransferRecord{
+		MSISDN:      cleanDigits(phoneMatch),
+		Amount:      fmt.Sprintf("%.0f", amt),
+		CreatedAt:   time.Now().Format("2006-01-02 15:04:05"),
+		Title:       "تحويل رصيد وارد (SMS)",
+		ServiceType: "sms",
+		Raw:         smsText,
+	}, nil
+}
+
+// RecordIncomingTransferFromSMS parses a credit transfer SMS text and automatically records
+// it in the client's local ledger for immediate matching by VerifyIncomingTransfer.
+func (c *Client) RecordIncomingTransferFromSMS(smsText string) (*IncomingTransferRecord, error) {
+	rec, err := ParseTransferSMS(smsText)
+	if err != nil {
+		return nil, err
+	}
+	c.RecordIncomingTransfer(*rec)
+	return rec, nil
+}
+
