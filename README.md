@@ -47,9 +47,108 @@ zainiraq-go/
 
 ---
 
-## ميزات وقدرات المكتبة (Features)
+## جدول نقاط النهاية المعتمدة (Endpoints Matrix - 92 APIs)
 
 المكتبة تغطي **92 واجهة برمجية (Endpoints)** رسمية تم فحصها وتحليلها هندسياً من تطبيق زين العراق الرسمي:
+
+| # | الطريقة | المسار (Endpoint Path) | دالة Go SDK المقابلة | الوصف التفصيلي باللغة العربية |
+| :---: | :---: | :--- | :--- | :--- |
+| **01** | `POST` | `/api/otp/request` | `client.RequestOTP(ctx, msisdn)` | طلب إرسال رمز التحقق OTP برسالة نصية SMS وتوليد `request_id` |
+| **02** | `POST` | `/api/otp/confirm` | `client.ConfirmOTP(ctx, msisdn, code)` | تأكيد رمز التحقق المدخل من المشترك وتوليد معرف التوثيق `confirmation_id` |
+| **03** | `POST` | `/api/user/sign` | `client.SignSession(ctx, msisdn, conf)` | استبدال معرف التوثيق بتوكنات الجلسة الكاملة (`access_token` و `refresh_token`) |
+| **04** | `POST` | `/api/user/login` | `client.LoginWithPassword(ctx, msisdn, pwd)` | تسجيل الدخول المباشر بالرقم وكلمة المرور المشفرة |
+| **05** | `POST` | `/api/user/token` | `client.RefreshToken(ctx)` | تجديد توكن الوصول المنتهي تلقائياً في الخلفية باستخدام توكن التحديث |
+| **06** | `GET` | `/api/v2/user/profile` | `client.GetProfile(ctx)` | جلب الملف الشخصي الكامل: الاسم، الرقم، نوع الخط، ومعرف Galleon |
+| **07** | `PATCH`| `/api/v2/user/profile` | `client.UpdateProfile(ctx, req)` | تعديل وتحديث بيانات المشترك (الاسم، البريد، الإعدادات) |
+| **08** | `POST` | `/api/user/create` | `client.SignUp(ctx, req)` | تسجيل حساب جديد لمشترك زين وتعيين بيانات الدخول |
+| **09** | `POST` | `/api/user/validate` | `client.ValidatePassword(ctx, pwd)` | التحقق من مطابقة كلمة المرور الحالية للمشترك قبل العمليات الحساسة |
+| **10** | `POST` | `/api/user/reset_password` | `client.ResetPassword(ctx, old, new)` | تغيير وإعادة تعيين كلمة مرور الحساب |
+| **11** | `DELETE`| `/api/user/logout` | `client.Logout(ctx)` | تسجيل الخروج وإبطال صلاحية التوكن على الخادم السحابي |
+| **12** | `DELETE`| `/api/user/delete` | `client.DeleteAccount(ctx)` | حذف وإغلاق حساب المشترك نهائياً من نظام التطبيق |
+| **13** | `POST` | `/api/user/feedback` | `client.SubmitFeedback(ctx, rate, comment)` | إرسال تقييم المشترك وملاحظاته حول تجربة التطبيق |
+| **14** | `GET` | `/api/number/summary` | `client.GetSummary(ctx)` | ملخص شامل للحساب: الرصيد، الحصص الفعالة، والخدمات المشتركة |
+| **15** | `GET` | `/api/number/wallet` | `client.GetBalance(ctx)` / `client.GetWalletBalance(ctx)` | استعلام رصيد المحفظة الأساسي وتاريخ انتهاء صلاحية الخط بدقة |
+| **16** | `GET` | `/api/number/loan` | `client.GetLoan(ctx)` | استعلام تفاصيل سلفة الرصيد للطوارئ والمبلغ المستحق |
+| **17** | `GET` | `/api/number/postpaid-history`| `client.GetPostpaidHistory(ctx)` | سجل الفواتير والدفعات السابقة للخطوط الآجلة الدفع |
+| **18** | `GET` | `/api/number/subaccounts` | `client.GetSubaccounts(ctx)` | جلب الحسابات الفرعية ورصيد البيانات (إنترنت، مكالمات، رسائل) |
+| **19** | `GET` | `/api/number/dashboard_message` | `client.GetDashboardMessages(ctx)` | استعلام رسائل التنبيه والاشعارات الموجهة للخط في الواجهة |
+| **20** | `GET` | `/api/number/query-bill` | `client.GetBill(ctx)` | استعلام الفاتورة الحالية، المبالغ غير المفوترة، والمستحقات السابقة |
+| **21** | `GET` | `/api/number/query-bill-items` | `client.GetBillItems(ctx)` | تفاصيل بنود وبنود استهلاك الفاتورة بالتفصيل |
+| **22** | `GET` | `/api/number/query-unbilled` | `client.GetUnbilled(ctx)` | استعلام الاستهلاك المفتوح خارج الفاتورة قبل صدورها |
+| **23** | `GET` | `/api/number/advance-payment` | `client.GetAdvancePayment(ctx)` | تفاصيل المبالغ المدفوعة مقدماً ورصيد التسديد المستقبلي |
+| **24** | `POST` | `/api/number/change-language` | `client.ChangeLanguage(ctx, lang)` | تغيير لغة الإشعارات والرسائل النصية للنظام (عربي، كردي، إنكليزي) |
+| **25** | `GET` | `/api/number/electronic-bill-items` | `client.GetCDRTransferHistory(ctx)` / `client.GetElectronicBillItems(ctx)` | كشف الحساب وسجل تحويلات الرصيد الواردة (CDR) لمعرفة رقم المرسل والمبلغ وتأكيد الدفع التلقائي بدون تسجيل دخول الزبون |
+| **26** | `POST` | `/api/number/charge-voucher` | `client.RechargeVoucher(ctx, pin)` | شحن وتعبئة الرصيد بكارت الشحن الورقي (16 رقماً) |
+| **27** | `POST` | `/api/number/credit-transfer` | `client.CreditTransfer(ctx, to, amt, otp)` | تحويل رصيد نقدي من رقم إلى رقم آخر في شبكة زين العراق |
+| **28** | `POST` | `/api/number/extend-validity` | `client.ExtendValidity(ctx, amount)` | تمديد صلاحية استقبال وإرسال الخط بخصم من الرصيد |
+| **29** | `POST` | `/api/payment/create-checkout-id` | `client.CreateCheckoutID(ctx, req)` | توليد معرّف الدفع Checkout ID لبوابة الدفع الإلكتروني والبطاقات |
+| **30** | `POST` | `/api/payment/refresh-payment-status` | `client.RefreshPaymentStatus(ctx, chkId)` | التحقق من نجاح أو فشل معاملة الدفع الإلكتروني بعد اكتمالها |
+| **31** | `POST` | `/api/payment/save-card` | `client.SaveCard(ctx, req)` | حفظ بطاقة الدفع (ماستركارد/فيزا) المشفرة لاستخدامها مستقبلاً |
+| **32** | `POST` | `/api/payment/set-default-card` | `client.SetDefaultCard(ctx, cardId)` | تعيين بطاقة دفع معينة كخيار افتراضي في الحساب |
+| **33** | `GET` | `/api/payment/user-cards` | `client.GetUserCards(ctx)` | جلب قائمة البطاقات المصرفية المحفوظة للمشترك |
+| **34** | `DELETE`| `/api/payment/delete-card` | `client.DeleteCard(ctx, cardId)` | فك ربط وحذف بطاقة مصرفية محفوظة من الحساب |
+| **35** | `POST` | `/api/payment/purchase-order` | `client.CreatePurchaseOrder(ctx, req)` | إنشاء أمر شراء ودفع مباشر عبر محفظة زين كاش (ZainCash) |
+| **36** | `GET` | `/api/offers` | `client.GetOffersCMS(ctx, queryShortname)` | جلب كتالوج العروض والأسعار من محرك المحتوى CMS |
+| **37** | `GET` | `/api/offers/{source_offer}` | `client.GetFlexBundles(ctx, offer, type)` | استعلام خيارات ترقية الباقات المتاحة للعرض الحالي (Flex Upsell) |
+| **38** | `GET` | `/api/number/personalized-offers?provider_type=ATL` | `client.GetPersonalizedOffersATL(ctx)` | جلب العروض الترويجية العامة فوق الخط (Above-The-Line) |
+| **39** | `GET` | `/api/number/personalized-offers?provider_type=BTL` | `client.GetPersonalizedOffersBTL(ctx)` | جلب العروض المخصصة الموجهة خصيصاً لرقم المشترك (BTL) |
+| **40** | `GET` | `/api/number/subscriptions` | `client.GetSubscriptions(ctx)` | استعلام جميع الاشتراكات والباقات الفعالة على الخط ومواعيد تجديدها |
+| **41** | `POST` | `/api/number/subscribe` | `client.SubscribeOffer(ctx, offerId)` | تفعيل والاشتراك الفوري في باقة معينة وخصم قيمتها من الرصيد |
+| **42** | `DELETE`| `/api/number/unsubscribe` | `client.UnsubscribeOffer(ctx, offerId)` | إلغاء الاشتراك وإيقاف التجديد التلقائي للباقة الفعالة |
+| **43** | `POST` | `/api/number/claim-daily-gift` | `client.ClaimDailyGift(ctx)` | استلام والمطالبة بالهدية المجانية اليومية المتاحة للرقم |
+| **44** | `POST` | `/api/number/send-gift` | `client.SendBundleGift(ctx, to, offerId)` | إهداء باقة إنترنت أو دقائق لرقم مشترك آخر على شبكة زين |
+| **45** | `POST` | `/api/number/redeem-registration-gift` | `client.RedeemRegistrationGift(ctx, offerId)` | استلام هدية التسجيل والترحيب للمشتركين الجدد |
+| **46** | `POST` | `/api/number/kafoo_invite` | `client.InviteToKafoo(ctx, invitedMSISDN)` | إرسال دعوة برنامج كفو (Kafoo Referral) لرقم صديق |
+| **47** | `GET` | `/api/number/flex-status` | `client.GetFlexStatus(ctx)` | استعلام حالة خط فليكس التراكمي، نقاط الاستهلاك، وصلاحية الباقة |
+| **48** | `GET` | `/api/number/flex-limits` | `client.GetFlexLimits(ctx)` | استعلام حدود وسقوف استهلاك الوحدات المسموح بها لباقة فليكس |
+| **49** | `POST` | `/api/number/migrate-to-flex` | `client.MigrateToFlex(ctx, targetOffer)` | تحويل خط المشترك إلى باقة فليكس المتكاملة |
+| **50** | `POST` | `/api/sharing/addrsc/` | `client.SharingAddMember(ctx, to, off, quota)` | إضافة رقم مشترك جديد لمجموعة مشاركة باقة الإنترنت العائلية |
+| **51** | `GET` | `/api/sharing/query` | `client.SharingQueryMembers(ctx, offerId)` | استعلام قائمة الأرقام المنضمة للمجموعة والحصص المحددة والمستهلكة |
+| **52** | `POST` | `/api/sharing/remove/` | `client.SharingRemoveMember(ctx, to, offerId)` | إزالة وحذف رقم من مجموعة مشاركة الباقة |
+| **53** | `POST` | `/api/sharing/transfer_unit` | `client.SharingTransferUnits(ctx, to, units)` | تحويل ونقل وحدات ميغابايت إضافية لأحد أعضاء المجموعة |
+| **54** | `GET` | `/api/loyalty/info` | `client.GetLoyaltyInfo(ctx)` | استعلام رصيد نقاط الولاء، فئة المشترك (Gold/Platinum)، والنقاط القابلة للصرف |
+| **55** | `GET` | `/api/loyalty/history` | `client.GetLoyaltyHistory(ctx)` | سجل وتاريخ عمليات اكتساب واستبدال نقاط برنامج الولاء |
+| **56** | `GET` | `/api/loyalty/hot-bundles` | `client.GetLoyaltyHotBundles(ctx)` | الباقات والعروض المميزة المتاحة للاستبدال بالنقاط مباشرة |
+| **57** | `POST` | `/api/loyalty/rewards/credit` | `client.RedeemLoyaltyCredit(ctx, req)` | استبدال نقاط الولاء برصيد نقدي يضاف لمجمل رصيد الشريحة |
+| **58** | `POST` | `/api/loyalty/rewards/offers` | `client.RedeemLoyaltyOffer(ctx, req)` | استبدال نقاط الولاء بباقات إنترنت ومكالمات مجانية |
+| **59** | `POST` | `/api/loyalty/rewards/promo-code` | `client.RedeemLoyaltyPromoCode(ctx, req)` | استبدال نقاط الولاء بكوبونات خصم وقسائم شراء رقمية |
+| **60** | `GET` | `/api/loyalty/faqs` | `client.GetLoyaltyFAQs(ctx)` | الأسئلة الشائعة وقواعد استخدام برنامج ولاء زين باللغات الثلاث |
+| **61** | `GET` | `/api/imtiyaz/categories` | `client.GetImtiyazCategories(ctx)` | تصنيفات وأقسام شركاء برنامج امتياز (مطاعم، تسوق، فنادق، صحة) |
+| **62** | `GET` | `/api/imtiyaz/merchants` | `client.GetImtiyazMerchants(ctx, category)` | قائمة المتاجر والشركاء المعتمدين ونسب الخصومات المقدمة |
+| **63** | `GET` | `/api/imtiyaz/merchant/{id}` | `client.GetMerchant(ctx, cat, id)` | تفاصيل المتجر المعتمد، الفروع، العناوين، وشروط العرض |
+| **64** | `POST` | `/api/imtiyaz/redeem` | `client.RedeemImtiyazDiscount(ctx, merchantId)` | توليد رمز الخصم الحصري (QR / Barcode) للمشترك لإبرازه في المتجر |
+| **65** | `GET` | `/api/complaints/categories` | `client.GetComplaintCategories(ctx)` | جلب تصنيفات وأقسام الشكاوى الفنية المعتمدة في زين العراق |
+| **66** | `GET` | `/api/complaints/sub-categories` | `client.GetComplaintSubCategories(ctx, catId)` | جلب التصنيفات الفرعية وأسباب المشاكل التابعة لكل قسم |
+| **67** | `GET` | `/api/complaints/tickets` | `client.GetTickets(ctx)` | استعلام سجل تذاكر الشكاوى المفتوحة والسابقة وحالتها الحالية |
+| **68** | `GET` | `/api/complaints/ticket/{id}` | `client.GetTicketDetails(ctx, ticketId)` | تتبع مسار معالجة تذكرة محددة، ردود فريق الدعم، وتحديثات الحل |
+| **69** | `POST` | `/api/complaints/create-ticket` | `client.CreateTicket(ctx, req)` | تقديم تذكرة شكوى رسمية جديدة مع إمكانية رفع مرفقات وصور فنية |
+| **70** | `POST` | `/api/complaints/reopen-ticket` | `client.ReopenTicket(ctx, ticketId, reason)` | إعادة فتح تذكرة شكوى مغلقة في حال عدم حل المشكلة بصورة مرضية |
+| **71** | `GET` | `/api/dashboard/notifications` | `client.GetNotifications(ctx, off, lim, read)` | جلب صندوق الإشعارات والتنبيهات الموجهة للمستخدم مع التصفية |
+| **72** | `POST` | `/api/dashboard/notifications/mark-read` | `client.MarkNotificationsRead(ctx, ids)` | تحديد وتحديث حالة الإشعارات كمقروءة على الخادم |
+| **73** | `GET` | `/api/dashboard/stories` | `client.GetStories(ctx)` | جلب القصص الإعلانية والتفاعلية القصيرة (In-App Stories) |
+| **74** | `GET` | `/api/dashboard/banners` | `client.GetBanners(ctx)` | جلب اللوحات الإعلانية والبانرات الترويجية لشاشة التطبيق الرئيسية |
+| **75** | `GET` | `/api/nearme/shops` | `client.GetNearMeShops(ctx, lat, lng, rad)` | البحث عن مراكز وفروع زين وموزعيها المعتمدين الأقرب جغرافياً |
+| **76** | `GET` | `/api/nearme/cities` | `client.GetCities(ctx)` | قائمة بجميع المحافظات والمدن العراقية المدعومة ومراكزها |
+| **77** | `GET` | `/api/digital-services` | `client.GetDigitalServices(ctx)` | قائمة الخدمات الرقمية والترفيهية (شاهد، أنغامي، ألعاب) |
+| **78** | `POST` | `/api/digital-services/subscribe` | `client.SubscribeDigitalService(ctx, svcId)` | الاشتراك في خدمة رقمية مع خصم الرسوم من الرصيد أو الفاتورة |
+| **79** | `POST` | `/api/digital-services/unsubscribe` | `client.UnsubscribeDigitalService(ctx, svcId)` | إلغاء الاشتراك في الخدمة الترفيهية الفعالة وإيقاف التجديد |
+| **80** | `POST` | `/dmart/public/excute/query/galleon` | `client.QueryCMS(ctx, "galleon", body)` | تنفيذ استعلام مباشر على مساحة Galleon في محرك المحتوى CMS |
+| **81** | `POST` | `/dmart/public/excute/query/products` | `client.QueryCMS(ctx, "products", body)` | استعلام كتالوج المنتجات والأسعار والعروض المحدثة لحظياً |
+| **82** | `POST` | `/dmart/public/excute/query/app_configurations` | `client.GetAppConfigurations(ctx)` | استخراج متغيرات وبيانات ضبط التطبيق وقيم الميزات (Feature Flags) |
+| **83** | `POST` | `/dmart/public/excute/query/subaccounts` | `client.GetSubaccountsCMS(ctx)` | استعلام مخطط وتفاصيل الحسابات الفرعية وتعريفات الحصص من CMS |
+| **84** | `POST` | `/dmart/public/excute/query/offers` | `client.GetOffersCatalogCMS(ctx)` | استعلام شامل لكامل شجرة العروض والخصومات المتاحة على الشبكة |
+| **85** | `POST` | `/dmart/public/excute/query/faqs` | `client.GetFAQsCMS(ctx)` | جلب قاعدة المعرفة والأسئلة الأكثر شيوعاً باللغات الثلاث |
+| **86** | `POST` | `/dmart/public/excute/query/roaming` | `client.GetRoamingCMS(ctx)` | استعلام قائمة الدول، الشبكات الشريكة، وتعرفة وباقات التجوال الدولي |
+| **87** | `GET` | `/api/number/friends-and-family` | `client.GetFriendsAndFamily(ctx)` | استعلام قائمة أرقام الأصدقاء والعائلة المضافة للاستفادة من التخفيض |
+| **88** | `POST` | `/api/number/friends-and-family/add` | `client.AddFriendsAndFamily(ctx, msisdn)` | إضافة رقم مفضل جديد لقائمة الأصدقاء والعائلة |
+| **89** | `DELETE`| `/api/number/friends-and-family/remove`| `client.RemoveFriendsAndFamily(ctx, msisdn)` | حذف رقم من قائمة الأصدقاء والعائلة |
+| **90** | `GET` | `/api/number/esim-details` | `client.GetESIMDetails(ctx)` | جلب بيانات الشريحة الإلكترونية eSIM ورمز التفعيل QR |
+| **91** | `POST` | `/api/number/swap-sim` | `client.RequestSIMSwap(ctx, iccid)` | طلب استبدال وتفعيل الشريحة الجديدة برقم البطاقة ICCID |
+| **92** | `GET` | `/api/system/time` | `client.GetServerTime(ctx)` | استعلام التوقيت الرسمي الدقيق لخوادم زين وحساب فارق التوقيت وضبط صلاحية الـ OTP والتوكنات |
+
+---
+
+## تفاصيل وميزات المكتبة (Features Breakdown)
 
 ### 1. المصادقة وإدارة الجلسات (Authentication & Sessions)
 * **طلب رمز التحقق (SMS OTP)**: `RequestOTP(ctx, msisdn)` لإرسال رمز الدخول مباشرة للهاتف مع توليد `request_id`.
