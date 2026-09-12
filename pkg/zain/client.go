@@ -203,11 +203,71 @@ func (c *Client) MasterWallet() string {
 func (c *Client) RecordIncomingTransfer(rec IncomingTransferRecord) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	if rec.CreatedAt == "" {
+		rec.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
+	}
+
 	const maxRecordedTransfers = 1000
+
+	// 1. If buffer reaches capacity, purge expired transfers (> 24 hours) first
+	if len(c.recordedIncomingTransfers) >= maxRecordedTransfers {
+		cutoff := time.Now().Add(-24 * time.Hour)
+		active := make([]IncomingTransferRecord, 0, maxRecordedTransfers)
+		for _, item := range c.recordedIncomingTransfers {
+			if item.CreatedAt != "" {
+				t, err := time.ParseInLocation("2006-01-02 15:04:05", item.CreatedAt, time.Local)
+				if err != nil {
+					t, err = time.Parse(time.RFC3339, item.CreatedAt)
+				}
+				if err == nil && t.Before(cutoff) {
+					continue
+				}
+			}
+			active = append(active, item)
+		}
+		c.recordedIncomingTransfers = active
+	}
+
+	// 2. Strict FIFO ring-buffer cap: drop oldest item if still at/over capacity
 	if len(c.recordedIncomingTransfers) >= maxRecordedTransfers {
 		c.recordedIncomingTransfers = c.recordedIncomingTransfers[len(c.recordedIncomingTransfers)-maxRecordedTransfers+1:]
 	}
+
 	c.recordedIncomingTransfers = append(c.recordedIncomingTransfers, rec)
+}
+
+// PruneRecordedIncomingTransfers purges entries older than maxAge (defaults to 24 hours if not specified or <= 0).
+// Returns the number of pruned items to keep daemon memory footprint strictly bounded.
+func (c *Client) PruneRecordedIncomingTransfers(maxAge ...time.Duration) int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	ttl := 24 * time.Hour
+	if len(maxAge) > 0 && maxAge[0] > 0 {
+		ttl = maxAge[0]
+	}
+
+	cutoff := time.Now().Add(-ttl)
+	prunedCount := 0
+	active := make([]IncomingTransferRecord, 0, len(c.recordedIncomingTransfers))
+
+	for _, rec := range c.recordedIncomingTransfers {
+		if rec.CreatedAt != "" {
+			t, err := time.ParseInLocation("2006-01-02 15:04:05", rec.CreatedAt, time.Local)
+			if err != nil {
+				t, err = time.Parse(time.RFC3339, rec.CreatedAt)
+			}
+			if err == nil && t.Before(cutoff) {
+				prunedCount++
+				continue
+			}
+		}
+		active = append(active, rec)
+	}
+
+	c.recordedIncomingTransfers = active
+	return prunedCount
 }
 
 func (c *Client) GetRecordedIncomingTransfers() []IncomingTransferRecord {

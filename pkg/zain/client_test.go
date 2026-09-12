@@ -1348,6 +1348,28 @@ func TestNormalizeMSISDNAndPolling(t *testing.T) {
 	if len(transfers) != 1000 {
 		t.Errorf("expected bounded slice length 1000, got %d", len(transfers))
 	}
+
+	// Test PruneRecordedIncomingTransfers (TTL pruning)
+	clientPrune := NewClient()
+	clientPrune.RecordIncomingTransfer(IncomingTransferRecord{
+		MSISDN:    "9647801111111",
+		Amount:    "5000",
+		CreatedAt: time.Now().Add(-25 * time.Hour).Format("2006-01-02 15:04:05"),
+	})
+	clientPrune.RecordIncomingTransfer(IncomingTransferRecord{
+		MSISDN:    "9647802222222",
+		Amount:    "5000",
+		CreatedAt: time.Now().Add(-1 * time.Hour).Format("2006-01-02 15:04:05"),
+	})
+
+	pruned := clientPrune.PruneRecordedIncomingTransfers(24 * time.Hour)
+	if pruned != 1 {
+		t.Errorf("expected 1 pruned transfer, got %d", pruned)
+	}
+	remaining := clientPrune.GetRecordedIncomingTransfers()
+	if len(remaining) != 1 || remaining[0].MSISDN != "9647802222222" {
+		t.Errorf("expected only fresh transfer remaining, got %+v", remaining)
+	}
 }
 
 func TestSystemAndSIMMethods(t *testing.T) {
