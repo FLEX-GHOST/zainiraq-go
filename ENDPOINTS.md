@@ -39,7 +39,7 @@
 | **12** | `DELETE`| `/api/user/delete` | `client.DeleteAccount(ctx)` | حذف وإغلاق حساب المشترك نهائياً من نظام التطبيق |
 | **13** | `POST` | `/api/user/feedback` | `client.SubmitFeedback(ctx, rate, comment)` | إرسال تقييم المشترك وملاحظاته حول تجربة التطبيق |
 | **14** | `GET` | `/api/number/summary` | `client.GetSummary(ctx)` | ملخص شامل للحساب: الرصيد، الحصص الفعالة، والخدمات المشتركة |
-| **15** | `GET` | `/api/number/balance` | `client.GetBalance(ctx)` | استعلام رصيد المحفظة الأساسي وتاريخ انتهاء صلاحية الخط |
+| **15** | `GET` | `/api/number/wallet` | `client.GetBalance(ctx)` / `client.GetWalletBalance(ctx)` | استعلام رصيد المحفظة الأساسي وتاريخ انتهاء صلاحية الخط بدقة |
 | **16** | `GET` | `/api/number/loan` | `client.GetLoan(ctx)` | استعلام تفاصيل سلفة الرصيد للطوارئ والمبلغ المستحق |
 | **17** | `GET` | `/api/number/postpaid-history`| `client.GetPostpaidHistory(ctx)` | سجل الفواتير والدفعات السابقة للخطوط الآجلة الدفع |
 | **18** | `GET` | `/api/number/subaccounts` | `client.GetSubaccounts(ctx)` | جلب الحسابات الفرعية ورصيد البيانات (إنترنت، مكالمات، رسائل) |
@@ -266,8 +266,8 @@ sha256/i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=
 ## 4. الرصيد، المحفظة والفوترة الآجلة (Balance, Wallet & Billing)
 
 ### 4.1 استعلام رصيد المحفظة والصلاحية (Get Wallet Balance)
-* **المسار**: `GET /api/number/balance`
-* **دالة Go SDK**: `client.GetBalance(ctx)`
+* **المسار**: `GET /api/number/wallet`
+* **دالة Go SDK**: `client.GetBalance(ctx)` أو `client.GetWalletBalance(ctx)`
 
 **استجابة خادم زين**:
 ```json
