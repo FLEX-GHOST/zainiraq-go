@@ -102,3 +102,36 @@ func (c *Client) GetDmartStatus(ctx context.Context) (map[string]any, error) {
 	}
 	return *resp, nil
 }
+
+func (c *Client) QueryCMS(ctx context.Context, space string, body any) (map[string]any, error) {
+	path := "dmart/public/excute/query/" + url.PathEscape(space)
+	resp, err := doAndDecodeCMS[map[string]any](ctx, c, path, body)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return map[string]any{}, nil
+	}
+	return *resp, nil
+}
+
+func (c *Client) GetAppConfigurations(ctx context.Context) (*ConfigCMS, error) {
+	return c.GetCMSConfiguration(ctx, "{ is_active: true }")
+}
+
+func (c *Client) GetSubaccountsCMS(ctx context.Context) (*SubAccountCms, error) {
+	return c.GetCMSSubaccount(ctx, "{ is_active: true }")
+}
+
+func (c *Client) GetOffersCatalogCMS(ctx context.Context) (*OfferDetailCms, error) {
+	return c.GetCMSOffersDetails(ctx, "{ is_active: true }")
+}
+
+func (c *Client) GetFAQsCMS(ctx context.Context) (map[string]any, error) {
+	return c.QueryCMS(ctx, "faqs", map[string]any{"is_active": true})
+}
+
+func (c *Client) GetRoamingCMS(ctx context.Context) (map[string]any, error) {
+	return c.QueryCMS(ctx, "roaming", map[string]any{"is_active": true})
+}
+

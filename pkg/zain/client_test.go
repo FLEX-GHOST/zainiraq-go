@@ -1310,3 +1310,96 @@ func TestNormalizeMSISDNAndPolling(t *testing.T) {
 	}
 }
 
+func TestSystemAndSIMMethods(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/system/time":
+			_ = json.NewEncoder(w).Encode(APIResponse[ServerTimeResp]{
+				Status: "success",
+				Data: ServerTimeResp{
+					ServerTime:  "2026-09-12T05:39:22+03:00",
+					Timestamp:   1789180762,
+					TimestampMS: 1789180762000,
+					Timezone:    "Asia/Baghdad",
+					UTCOffset:   "+03:00",
+				},
+			})
+		case "/api/number/friends-and-family":
+			_ = json.NewEncoder(w).Encode(APIResponse[FriendsAndFamilyResp]{
+				Status: "success",
+				Data: FriendsAndFamilyResp{
+					MaxAllowed: 5,
+					Numbers:    []string{"07801234567", "07809876543"},
+				},
+			})
+		case "/api/number/friends-and-family/add":
+			_ = json.NewEncoder(w).Encode(APIResponse[any]{
+				Status: "success",
+			})
+		case "/api/number/friends-and-family/remove":
+			_ = json.NewEncoder(w).Encode(APIResponse[any]{
+				Status: "success",
+			})
+		case "/api/number/esim-details":
+			_ = json.NewEncoder(w).Encode(APIResponse[ESIMDetailsResp]{
+				Status: "success",
+				Data: ESIMDetailsResp{
+					ICCID:          "8996401234567890123",
+					MatchingID:     "MATCH-12345",
+					QRCodeData:     "LPA:1$smdp.zain.iq$MATCH-12345",
+					ActivationCode: "ACT-9988",
+					Status:         "ACTIVE",
+				},
+			})
+		case "/api/number/swap-sim":
+			_ = json.NewEncoder(w).Encode(APIResponse[SIMSwapResp]{
+				Status: "success",
+				Data: SIMSwapResp{
+					RequestID: "REQ-SWAP-123",
+					Status:    "PENDING",
+					Message:   "SIM swap request submitted successfully",
+				},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer ts.Close()
+
+	client := NewClient(WithBaseURL(ts.URL), WithCMSURL(ts.URL))
+	ctx := context.Background()
+
+	// 1. Test GetServerTime
+	serverTime, err := client.GetServerTime(ctx)
+	if err != nil {
+		t.Fatalf("GetServerTime failed: %v", err)
+	}
+	if serverTime.Timezone != "Asia/Baghdad" || serverTime.Timestamp != 1789180762 {
+		t.Errorf("unexpected server time: %+v", serverTime)
+	}
+
+	// 2. Test Friends & Family
+	fnf, err := client.GetFriendsAndFamily(ctx)
+	if err != nil || len(fnf.Numbers) != 2 {
+		t.Fatalf("GetFriendsAndFamily failed: %v", err)
+	}
+	if err := client.AddFriendsAndFamily(ctx, "07801112233"); err != nil {
+		t.Fatalf("AddFriendsAndFamily failed: %v", err)
+	}
+	if err := client.RemoveFriendsAndFamily(ctx, "07801112233"); err != nil {
+		t.Fatalf("RemoveFriendsAndFamily failed: %v", err)
+	}
+
+	// 3. Test eSIM Details & SIM Swap
+	esim, err := client.GetESIMDetails(ctx)
+	if err != nil || esim.ICCID != "8996401234567890123" {
+		t.Fatalf("GetESIMDetails failed: %v", err)
+	}
+	swap, err := client.RequestSIMSwap(ctx, "8996409988776655443")
+	if err != nil || swap.RequestID != "REQ-SWAP-123" {
+		t.Fatalf("RequestSIMSwap failed: %v", err)
+	}
+}
+
+

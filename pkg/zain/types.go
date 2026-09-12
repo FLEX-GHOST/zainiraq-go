@@ -973,3 +973,42 @@ type ComplaintReopenReason struct {
 	ID     string `json:"id"`
 	Reason string `json:"reason"`
 }
+
+type ServerTimeResp struct {
+	ServerTime  string `json:"server_time,omitempty"`
+	Timestamp   int64  `json:"timestamp,omitempty"`
+	TimestampMS int64  `json:"timestamp_ms,omitempty"`
+	Timezone    string `json:"timezone,omitempty"`
+	UTCOffset   string `json:"utc_offset,omitempty"`
+}
+
+type FriendsAndFamilyResp struct {
+	MaxAllowed int      `json:"max_allowed"`
+	Numbers    []string `json:"numbers"`
+}
+
+type FriendsAndFamilyReq struct {
+	MSISDN       string `json:"msisdn"`
+	TargetMSISDN string `json:"target_msisdn"`
+}
+
+type ESIMDetailsResp struct {
+	ICCID          string `json:"iccid"`
+	MatchingID     string `json:"matching_id,omitempty"`
+	QRCodeData     string `json:"qr_code_data,omitempty"`
+	SMDPAddress    string `json:"smdp_address,omitempty"`
+	ActivationCode string `json:"activation_code,omitempty"`
+	Status         string `json:"status,omitempty"`
+}
+
+type SIMSwapReq struct {
+	MSISDN string `json:"msisdn"`
+	ICCID  string `json:"iccid"`
+}
+
+type SIMSwapResp struct {
+	RequestID string `json:"request_id"`
+	Status    string `json:"status"`
+	Message   string `json:"message,omitempty"`
+}
+

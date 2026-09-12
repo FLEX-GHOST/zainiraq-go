@@ -174,7 +174,13 @@ zainiraq-go/
   * `GetFAQsCMS(ctx)`: جلب الأسئلة الشائعة باللغات الثلاث (عربي، إنكليزي، كردي).
   * `GetRoamingCMS(ctx)`: استعلام تعرفة وشبكات التجوال الدولي للدول حول العالم.
 
+### 10. إدارة الشريحة والنظام ومزامنة الوقت (SIM, FNF & System Time)
+* **مزامنة وقت خوادم زين (Endpoint 92)**: `GetServerTime(ctx)` لمعرفة التوقيت الرسمي بدقة لحساب فارق التوقيت (Clock Drift)، وضبط انتهاء صلاحية التوكنات، وأتمتة سحب الهدايا اليومية عند منتصف الليل بتوقيت بغداد.
+* **الأرقام المفضلة (Friends & Family)**: `GetFriendsAndFamily(ctx)` و `AddFriendsAndFamily(ctx, targetPhone)` و `RemoveFriendsAndFamily(ctx, targetPhone)`.
+* **الشريحة الإلكترونية واستبدال الشريحة**: `GetESIMDetails(ctx)` و `RequestSIMSwap(ctx, iccid)`.
+
 ---
+
 
 ## البدء السريع (Quick Start)
 
