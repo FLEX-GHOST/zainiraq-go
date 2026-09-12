@@ -99,4 +99,26 @@ func main() {
 	} else {
 		fmt.Printf("Associated: %t | Unified SIM Status: %s\n", preReg.AssociatedWithUser, preReg.UnifiedSIMStatus)
 	}
+
+	// 7. Query In-App Dashboard Messages
+	fmt.Println("\n[7] Querying In-App Dashboard Messages...")
+	dashMsgs, err := client.GetDashboardMessages(ctx)
+	if err != nil {
+		fmt.Printf("Failed to get dashboard messages: %v\n", err)
+	} else if dashMsgs != nil {
+		fmt.Printf("Found %d dashboard message(s)\n", len(dashMsgs.Messages))
+		for _, msg := range dashMsgs.Messages {
+			title := ""
+			if msg.Title != nil {
+				title = msg.Title.AR
+			}
+			fmt.Printf(" - [%s] %s (Action: %s)\n", msg.Severity, title, msg.ActionURL)
+		}
+	}
+
+	// 8. Update Profile & Feedback Examples
+	fmt.Println("\n[8] Profile Update & Password Validation Methods:")
+	fmt.Println(" - client.UpdateProfile(ctx, &zain.UpdateProfileReq{Name: \"New Name\", Language: \"ar\"})")
+	fmt.Println(" - client.ValidatePassword(ctx, \"password123\")")
+	fmt.Println(" - client.SubmitFeedback(ctx, 5, \"Excellent network service\")")
 }

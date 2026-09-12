@@ -43,7 +43,7 @@
 | **16** | `GET` | `/api/number/loan` | `client.GetLoan(ctx)` | استعلام تفاصيل سلفة الرصيد للطوارئ والمبلغ المستحق |
 | **17** | `GET` | `/api/number/postpaid-history`| `client.GetPostpaidHistory(ctx)` | سجل الفواتير والدفعات السابقة للخطوط الآجلة الدفع |
 | **18** | `GET` | `/api/number/subaccounts` | `client.GetSubaccounts(ctx)` | جلب الحسابات الفرعية ورصيد البيانات (إنترنت، مكالمات، رسائل) |
-| **19** | `GET` | `/api/number/dashboard-message` | `client.GetDashboardMessage(ctx)` | استعلام رسائل التنبيه والاشعارات الموجهة للخط في الواجهة |
+| **19** | `GET` | `/api/number/dashboard_message` | `client.GetDashboardMessages(ctx)` | استعلام رسائل التنبيه والاشعارات الموجهة للخط في الواجهة |
 | **20** | `GET` | `/api/number/query-bill` | `client.GetBill(ctx)` | استعلام الفاتورة الحالية، المبالغ غير المفوترة، والمستحقات السابقة |
 | **21** | `GET` | `/api/number/query-bill-items` | `client.GetBillItems(ctx)` | تفاصيل بنود وبنود استهلاك الفاتورة بالتفصيل |
 | **22** | `GET` | `/api/number/query-unbilled` | `client.GetUnbilled(ctx)` | استعلام الاستهلاك المفتوح خارج الفاتورة قبل صدورها |
@@ -263,6 +263,169 @@ sha256/i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=
 
 ---
 
+### 3.5 تعديل وتحديث الملف الشخصي (Update Profile)
+* **المسار**: `PATCH /api/v2/user/profile`
+* **الترويسات**: `Authorization: Bearer <access_token>`
+* **دالة Go SDK**: `client.UpdateProfile(ctx, &zain.UpdateProfileReq{Name: "Ahmed", Email: "ahmed@example.com", Language: "ar"})`
+
+**طلب JSON**:
+```json
+{
+  "name": "Ahmed Ali",
+  "email": "ahmed.ali@example.com",
+  "language": "ar"
+}
+```
+
+**استجابة خادم زين**:
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "14265463-f2e6-44e5-9006-f1cd3c33ab50",
+    "name": "Ahmed Ali",
+    "email": "ahmed.ali@example.com",
+    "msisdn": "7845900162",
+    "customer_billing_type": "prepaid",
+    "is_4g_compatible": true
+  }
+}
+```
+
+---
+
+### 3.6 تسجيل حساب جديد لمشترك زين (User Sign Up)
+* **المسار**: `POST /api/user/create`
+* **دالة Go SDK**: `client.SignUp(ctx, &zain.UserInfoReq{Name: "Ahmed", Email: "ahmed@example.com", Password: "SecurePassword123!"})`
+
+**طلب JSON**:
+```json
+{
+  "name": "Ahmed Ali",
+  "email": "ahmed.ali@example.com",
+  "password": "SecurePassword123!"
+}
+```
+
+**استجابة خادم زين**:
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "14265463-f2e6-44e5-9006-f1cd3c33ab50",
+    "name": "Ahmed Ali",
+    "email": "ahmed.ali@example.com",
+    "msisdn": "7845900162"
+  }
+}
+```
+
+---
+
+### 3.7 التحقق من مطابقة كلمة المرور (Validate Password)
+* **المسار**: `POST /api/user/validate`
+* **الترويسات**: `Authorization: Bearer <access_token>`
+* **دالة Go SDK**: `client.ValidatePassword(ctx, "CurrentPassword123!")`
+
+**طلب JSON**:
+```json
+{
+  "password": "CurrentPassword123!"
+}
+```
+
+**استجابة خادم زين**:
+```json
+{
+  "status": "success",
+  "data": {
+    "valid": true
+  }
+}
+```
+
+---
+
+### 3.8 تغيير وإعادة تعيين كلمة مرور الحساب (Reset Password)
+* **المسار**: `POST /api/user/reset_password`
+* **الترويسات**: `Authorization: Bearer <access_token>`, `gal-msisdn: 78XXXXXXXX`
+* **دالة Go SDK**: `client.ResetPassword(ctx, oldPassword, newPassword)`
+
+**طلب JSON**:
+```json
+{
+  "old_password": "CurrentPassword123!",
+  "new_password": "NewSecurePassword456@"
+}
+```
+
+**استجابة خادم زين**:
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Password reset successfully"
+  }
+}
+```
+
+---
+
+### 3.9 تسجيل الخروج وإبطال صلاحية التوكن (User Logout)
+* **المسار**: `DELETE /api/user/logout`
+* **الترويسات**: `Authorization: Bearer <access_token>`
+* **دالة Go SDK**: `client.Logout(ctx)`
+
+**استجابة خادم زين**:
+```json
+{
+  "status": "success",
+  "data": null
+}
+```
+
+---
+
+### 3.10 حذف وإغلاق حساب المشترك نهائياً (Delete User Account)
+* **المسار**: `DELETE /api/user/delete`
+* **الترويسات**: `Authorization: Bearer <access_token>`
+* **دالة Go SDK**: `client.DeleteAccount(ctx)`
+
+**استجابة خادم زين**:
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Account scheduled for deletion"
+  }
+}
+```
+
+---
+
+### 3.11 إرسال تقييم المشترك وملاحظاته (Submit In-App Feedback)
+* **المسار**: `POST /api/user/feedback`
+* **الترويسات**: `Authorization: Bearer <access_token>`
+* **دالة Go SDK**: `client.SubmitFeedback(ctx, 5, "خدمة ممتازة وتطبيق سريع")`
+
+**طلب JSON**:
+```json
+{
+  "rating": 5,
+  "comment": "خدمة ممتازة وتطبيق سريع"
+}
+```
+
+**استجابة خادم زين**:
+```json
+{
+  "status": "success",
+  "data": null
+}
+```
+
+---
+
 ## 4. الرصيد، المحفظة والفوترة الآجلة (Balance, Wallet & Billing)
 
 ### 4.1 استعلام رصيد المحفظة والصلاحية (Get Wallet Balance)
@@ -327,6 +490,57 @@ sha256/i7WTqTvh0OioIruIfFR4kMPnBqrS2rdiVPl/s2uC/CY=
     "past_due": 0.0,
     "unbilled_amount": 20000.0,
     "is_dunning": false
+  }
+}
+```
+
+---
+
+### 4.4 استعلام رسائل وتنبيهات اللوحة للخط (Dashboard Messages)
+* **المسار**: `GET /api/number/dashboard_message`
+* **الترويسات**: `Authorization: Bearer <access_token>`
+* **المعلمات**: `msisdn=78XXXXXXXX`
+* **دالة Go SDK**: `client.GetDashboardMessages(ctx)`
+
+**استجابة خادم زين**:
+```json
+{
+  "status": "success",
+  "data": {
+    "messages": [
+      {
+        "id": "msg-dash-001",
+        "title": {
+          "ar": "تنبيه استهلاك الباقة",
+          "en": "Bundle Quota Alert"
+        },
+        "description": {
+          "ar": "لقد استهلكت 80% من باقة الإنترنت الشهرية الخاصة بك.",
+          "en": "You have consumed 80% of your monthly internet bundle."
+        },
+        "action_url": "zain://offers/upsell",
+        "severity": "warning"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 4.5 فحص حالة التسجيل المسبق للشريحة (SIM Pre-Registration Status)
+* **المسار**: `GET /api/v2/number/pre-registration-check`
+* **الترويسات**: `Authorization: Bearer <access_token>`
+* **المعلمات**: `msisdn=78XXXXXXXX`
+* **دالة Go SDK**: `client.CheckPreRegistration(ctx)`
+
+**استجابة خادم زين**:
+```json
+{
+  "status": "success",
+  "data": {
+    "associated_with_user": true,
+    "unified_sim_status": "NORMAL"
   }
 }
 ```
