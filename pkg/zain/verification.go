@@ -165,6 +165,10 @@ func (c *Client) GetIncomingTransfers(ctx context.Context, limit ...int) ([]Inco
 	return results, nil
 }
 
+func (c *Client) GetCDRTransferHistory(ctx context.Context, limit ...int) ([]IncomingTransferRecord, error) {
+	return c.GetIncomingTransfers(ctx, limit...)
+}
+
 func (c *Client) VerifyIncomingTransfer(ctx context.Context, senderPhone string, minAmount float64) (bool, *IncomingTransferRecord, error) {
 	cleanSender := cleanDigits(senderPhone)
 	if len(cleanSender) < 9 {
