@@ -203,6 +203,10 @@ func (c *Client) MasterWallet() string {
 func (c *Client) RecordIncomingTransfer(rec IncomingTransferRecord) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	const maxRecordedTransfers = 1000
+	if len(c.recordedIncomingTransfers) >= maxRecordedTransfers {
+		c.recordedIncomingTransfers = c.recordedIncomingTransfers[len(c.recordedIncomingTransfers)-maxRecordedTransfers+1:]
+	}
 	c.recordedIncomingTransfers = append(c.recordedIncomingTransfers, rec)
 }
 

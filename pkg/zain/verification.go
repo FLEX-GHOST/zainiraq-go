@@ -169,10 +169,12 @@ func (c *Client) GetCDRTransferHistory(ctx context.Context, limit ...int) ([]Inc
 	return c.GetIncomingTransfers(ctx, limit...)
 }
 
-func (c *Client) VerifyIncomingTransfer(ctx context.Context, senderPhone string, minAmount float64) (bool, *IncomingTransferRecord, error) {
+// VerifyIncomingTransferFromMemory inspects only the in-memory recorded transfers (e.g. from SMS)
+// with zero network latency and zero external HTTP calls.
+func (c *Client) VerifyIncomingTransferFromMemory(senderPhone string, minAmount float64) (bool, *IncomingTransferRecord) {
 	cleanSender := cleanDigits(senderPhone)
 	if len(cleanSender) < 9 {
-		return false, nil, fmt.Errorf("zain: invalid sender phone number (minimum 9 digits required)")
+		return false, nil
 	}
 
 	for _, rec := range c.GetRecordedIncomingTransfers() {
@@ -180,11 +182,14 @@ func (c *Client) VerifyIncomingTransfer(ctx context.Context, senderPhone string,
 			amtVal := parseAmountString(rec.Amount)
 			if minAmount <= 0 || amtVal >= minAmount {
 				matched := rec
-				return true, &matched, nil
+				return true, &matched
 			}
 		}
 	}
+	return false, nil
+}
 
+func (c *Client) queryCloudTransfers(ctx context.Context, cleanSender string, minAmount float64) (bool, *IncomingTransferRecord, error) {
 	liveTransfers, err := c.GetIncomingTransfers(ctx, 50)
 	if err != nil {
 		return false, nil, fmt.Errorf("zain: querying incoming transfers: %w", err)
@@ -201,6 +206,19 @@ func (c *Client) VerifyIncomingTransfer(ctx context.Context, senderPhone string,
 	}
 
 	return false, nil, nil
+}
+
+func (c *Client) VerifyIncomingTransfer(ctx context.Context, senderPhone string, minAmount float64) (bool, *IncomingTransferRecord, error) {
+	cleanSender := cleanDigits(senderPhone)
+	if len(cleanSender) < 9 {
+		return false, nil, fmt.Errorf("zain: invalid sender phone number (minimum 9 digits required)")
+	}
+
+	if ok, rec := c.VerifyIncomingTransferFromMemory(cleanSender, minAmount); ok && rec != nil {
+		return true, rec, nil
+	}
+
+	return c.queryCloudTransfers(ctx, cleanSender, minAmount)
 }
 
 // NormalizeMSISDN standardizes any Iraqi phone format (local 078..., 78..., international +964..., or Arabic numerals)
@@ -236,8 +254,18 @@ func FormatLocalMSISDN(phone string) string {
 	return clean
 }
 
+type cloudPollResult struct {
+	ok       bool
+	rec      *IncomingTransferRecord
+	err      error
+	interval time.Duration
+}
+
 // WaitForIncomingTransfer polls periodically until an incoming transfer from senderPhone is verified,
 // or until the context expires or is cancelled.
+// It prioritizes local in-memory SMS records (0 network calls) checked rapidly in milliseconds,
+// and applies exponential backoff with jitter on remote cloud CDR polling to prevent
+// HTTP 429 Too Many Requests and IP rate limits on Zain's servers.
 func (c *Client) WaitForIncomingTransfer(ctx context.Context, senderPhone string, minAmount float64, interval time.Duration) (*IncomingTransferRecord, error) {
 	if interval <= 0 {
 		interval = 3 * time.Second
@@ -248,27 +276,80 @@ func (c *Client) WaitForIncomingTransfer(ctx context.Context, senderPhone string
 		normalized = cleanDigits(senderPhone)
 	}
 
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	// Initial immediate check
-	ok, record, err := c.VerifyIncomingTransfer(ctx, normalized, minAmount)
-	if err == nil && ok && record != nil {
-		return record, nil
+	// 1. Immediate fast-path: in-memory SMS ledger (zero network latency)
+	if ok, rec := c.VerifyIncomingTransferFromMemory(normalized, minAmount); ok && rec != nil {
+		return rec, nil
 	}
 
+	currentInterval := interval
+	maxInterval := 15 * time.Second
+	if maxInterval < currentInterval {
+		maxInterval = currentInterval * 2
+	}
+
+	localCheckFreq := 100 * time.Millisecond
+	if localCheckFreq > interval {
+		localCheckFreq = interval
+	}
+	if localCheckFreq < 10*time.Millisecond {
+		localCheckFreq = 10 * time.Millisecond
+	}
+
+	localTicker := time.NewTicker(localCheckFreq)
+	defer localTicker.Stop()
+
+	cloudResultChan := make(chan cloudPollResult, 1)
+	cloudInFlight := false
+	nextCloudCheck := time.Now() // trigger first cloud check immediately
+
 	for {
+		// If cloud query is idle and scheduled time has arrived, trigger single non-blocking check
+		if !cloudInFlight && time.Now().After(nextCloudCheck) {
+			cloudInFlight = true
+			go func(pollInterval time.Duration) {
+				defer func() {
+					if r := recover(); r != nil {
+						// Goroutine panic recovery
+					}
+				}()
+				cloudCtx, cloudCancel := context.WithTimeout(ctx, 5*time.Second)
+				defer cloudCancel()
+				ok, rec, queryErr := c.queryCloudTransfers(cloudCtx, normalized, minAmount)
+				select {
+				case cloudResultChan <- cloudPollResult{ok: ok, rec: rec, err: queryErr, interval: pollInterval}:
+				case <-ctx.Done():
+				}
+			}(currentInterval)
+		}
+
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case <-ticker.C:
-			ok, record, err := c.VerifyIncomingTransfer(ctx, normalized, minAmount)
-			if err != nil {
-				continue
+
+		case <-localTicker.C:
+			// Rapid check for local SMS ledger (zero network overhead, zero latency)
+			if ok, rec := c.VerifyIncomingTransferFromMemory(normalized, minAmount); ok && rec != nil {
+				return rec, nil
 			}
-			if ok && record != nil {
-				return record, nil
+
+		case res := <-cloudResultChan:
+			cloudInFlight = false
+			if res.ok && res.rec != nil {
+				return res.rec, nil
 			}
+
+			// Backoff logic on cloud failure or missing transfer:
+			if res.err != nil && (strings.Contains(res.err.Error(), "429") || strings.Contains(res.err.Error(), "rate")) {
+				currentInterval = maxInterval
+			} else {
+				currentInterval = time.Duration(float64(res.interval) * 1.5)
+				if currentInterval > maxInterval {
+					currentInterval = maxInterval
+				}
+			}
+
+			jitter := time.Duration((time.Now().UnixNano()%400)-200) * time.Millisecond
+			nextCloudCheck = time.Now().Add(currentInterval + jitter)
 		}
 	}
 }

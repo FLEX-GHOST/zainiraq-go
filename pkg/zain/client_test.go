@@ -3,6 +3,7 @@ package zain
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -1307,6 +1308,45 @@ func TestNormalizeMSISDNAndPolling(t *testing.T) {
 	_, errTimeout := client.WaitForIncomingTransfer(timeoutCtx, "07800000000", 10000, 50*time.Millisecond)
 	if errTimeout == nil {
 		t.Errorf("expected timeout error, got nil")
+	}
+
+	// Test VerifyIncomingTransferFromMemory fast path
+	okMem, recMem := client.VerifyIncomingTransferFromMemory("07809988776", 25000)
+	if !okMem || recMem == nil || recMem.Amount != "25000" {
+		t.Errorf("expected memory hit for 07809988776, got ok=%v, rec=%v", okMem, recMem)
+	}
+
+	// Test asynchronous SMS record arrival during WaitForIncomingTransfer
+	asyncCtx, asyncCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer asyncCancel()
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		client.RecordIncomingTransfer(IncomingTransferRecord{
+			MSISDN: "9647805554433",
+			Amount: "10000",
+			Title:  "Async SMS Transfer",
+		})
+	}()
+
+	recAsync, errAsync := client.WaitForIncomingTransfer(asyncCtx, "07805554433", 10000, 1*time.Second)
+	if errAsync != nil {
+		t.Fatalf("WaitForIncomingTransfer failed to pick up async SMS: %v", errAsync)
+	}
+	if recAsync.Amount != "10000" {
+		t.Errorf("expected 10000, got %s", recAsync.Amount)
+	}
+
+	// Test bounded buffer capacity (cap at 1000)
+	for i := 0; i < 1050; i++ {
+		client.RecordIncomingTransfer(IncomingTransferRecord{
+			MSISDN: fmt.Sprintf("964780000%04d", i),
+			Amount: "1000",
+		})
+	}
+	transfers := client.GetRecordedIncomingTransfers()
+	if len(transfers) != 1000 {
+		t.Errorf("expected bounded slice length 1000, got %d", len(transfers))
 	}
 }
 
