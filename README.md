@@ -79,30 +79,40 @@ zainiraq-go/
 * **إدارة لغة الخط**: `ChangeLanguage(ctx, lang)` لتعيين لغة الرسائل النصية والإشعارات (`ar`, `en`, `kd`).
 
 ### 3. كشف الحساب والتحقق التلقائي من تحويلات الرصيد بدون تسجيل دخول (CDR & Transfer Verification)
-* **كشف حساب تحويلات الرصيد (CDR)**: `GetIncomingTransfers(ctx, limit)` أو `GetCDRTransferHistory(ctx, limit)` و `GetElectronicBillItems(ctx)` لجلب السجل الحقيقي لتحويلات الرصيد الواردة للشريحة مع رقم المرسل والمبلغ والتاريخ الدقيق بالثانية.
-* **التحقق التلقائي المباشر للأنظمة والبوتات**: `VerifyIncomingTransfer(ctx, senderPhone, minAmount)` للتحقق البرمجي التلقائي والفوري من استلام حوالة رصيد من زبون **دون الحاجة لتسجيل دخول الزبون** وبدون أي تدخل يدوي للأدمن (الشريحة تفحص السجل تلقائياً وتتأكد من رقم المرسل والمبلغ وتفعل الطلب).
-* **معالجة وقراءة رسائل الـ SMS تلقائياً**: `zain.ParseTransferSMS(smsText)` لاستخراج رقم المرسل والمبلغ من نصوص رسائل زين (بالأرقام العربية والإنجليزية)، و `client.RecordIncomingTransferFromSMS(smsText)` لتسجيلها فورياً في سجل المطابقة المباشرة.
-* **الانتظار الذكي للحوالة (Smart Polling)**: `WaitForIncomingTransfer(ctx, senderPhone, minAmount, interval)` للانتظار والفحص المتكرر حتى وصول الحوالة فعلياً وتأكيد دفع الطلب.
-* **تثبيت رقم المحفظة المعتمد (Master Wallet)**:
-  * `client.SetMasterWallet(phone)`: تثبيت رقم محفظة النظام لاستقبال التحويلات.
-  * `client.MasterWallet()`: جلب رقم المحفظة الحالي.
-  * `client.GetWalletOverview(ctx)`: نظرة شاملة لرصيد المحفظة، الصلاحية، ونوع الخط.
-  * `client.GetWalletBalance(ctx)`: استعلام رصيد المحفظة المباشر عبر `api/number/wallet`.
-* **توليد كود الـ USSD السريع للزبون**: `client.FormatUSSDTransfer(recipient, amount)` لتوليد كود التحويل لزين العراق (`*123*amount*recipient#`).
-* **توحيد وتصحيح صيغ الأرقام**: `zain.NormalizeMSISDN(phone)` و `zain.FormatLocalMSISDN(phone)` لمعالجة الأرقام العراقية وتحويل الأرقام الشرقية (`٠١٢٣٤...`).
-* **تحويل الرصيد المباشر (P2P Credit Transfer)**:
-  * `client.RequestCreditTransferOTP(ctx, senderMSISDN)`: طلب كود تحقق SMS لعملية التحويل.
-  * `client.ConfirmCreditTransferOTP(ctx, otpCode, senderMSISDN)`: تأكيد الرمز واستخراج توكن التحويل.
-  * `client.CreditTransfer(ctx, recipient, amount, otpConfirmation)`: إرسال الرصيد الفعلي للمشترك الآخر.
-* **شحن كروت الرصيد الورقية**: `RechargeVoucher(ctx, voucherPIN)` لشحن الكروت ذات الـ 16 رقماً للخط الحالي أو لرقم آخر مع استلام الرصيد الجديد فورياً.
-* **تمديد صلاحية استقبال وإرسال الخط**: `ExtendValidity(ctx, amount)` و `GetValidityOptions(ctx)`.
-* **بوابة الدفع الإلكتروني (Card & Checkout)**:
-  * `CreateCheckoutID(ctx, req)`: إنشاء معرف Checkout ID لبطاقات ماستركارد وفيزا.
-  * `RefreshPaymentStatus(ctx, checkoutID)`: فحص حالة عملية الدفع والتأكد من إتمامها.
-  * `SaveCard(ctx, req)`: حفظ وتشفير بيانات البطاقة لاستخدامها مستقبلاً.
-  * `SetDefaultCard(ctx, cardID)` و `GetUserCards(ctx)` و `DeleteCard(ctx, cardID)`.
-* **محفظة زين كاش (ZainCash Direct Purchase)**:
-  * `InitiateZainCashPayment(ctx, req)` و `InitiateZainCashPaymentV2(ctx, req)`: بدء الدفع المباشر عبر ZainCash.
+
+توفر المكتبة منظومة متكاملة تتيح للمتاجر والأنظمة السحابية والتطبيقات التحقق البرمجي التلقائي والفوري من استلام حوالات الرصيد من الزبائن **دون الحاجة لتسجيل دخول الزبون** وبدون أي تدخل يدوي للأدمن، بالاعتماد على كشف حساب الشريحة (CDR) وسجل الفواتير والإشعارات اللحظية:
+
+| # | الطريقة | المسار (Endpoint Path) | دالة Go SDK المقابلة | الوصف التفصيلي باللغة العربية |
+| :---: | :---: | :--- | :--- | :--- |
+| **01** | `GET` | `/api/number/electronic-bill-items` | `client.GetCDRTransferHistory(ctx, limit)`<br>`client.GetElectronicBillItems(ctx)` | كشف حساب سجل تحويلات الرصيد الواردة للشريحة (CDR) مع رقم المرسل والمبلغ والتاريخ الدقيق بالثانية لتأكيد الدفع التلقائي دون تسجيل دخول الزبون |
+| **02** | `GET` | `/api/dashboard/notifications` | `client.GetNotifications(ctx, off, lim, read)`<br>`client.GetIncomingTransfers(ctx, limit)` | جلب إشعارات وتنبيهات وصول الرصيد من النظام فورياً وفحص الحوالات الجديدة المكتملة |
+| **03** | `GET` | `/api/number/wallet` | `client.GetBalance(ctx)`<br>`client.GetWalletBalance(ctx)` | استعلام رصيد المحفظة الأساسي للشريحة وتاريخ انتهاء الصلاحية بدقة متناهية |
+| **04** | `GET` | `/api/number/summary` | `client.GetSummary(ctx)`<br>`client.GetWalletOverview(ctx)` | نظرة عامة شاملة لرصيد المحفظة الأساسي، الصلاحية، ونوع الخط والخدمات |
+| **05** | `POST` | `/api/number/charge-voucher` | `client.RechargeVoucher(ctx, voucherPIN)` | شحن وتعبئة الرصيد الفوري بكارت الشحن الورقي (16 رقماً) للخط الحالي أو لرقم آخر |
+| **06** | `POST` | `/api/number/credit-transfer` | `client.CreditTransfer(ctx, recipient, amount, otp)` | تحويل رصيد نقدي مباشر من الخط إلى رقم آخر في شبكة زين العراق |
+| **07** | `POST` | `/api/otp/request` | `client.RequestCreditTransferOTP(ctx, senderMSISDN)` | طلب رمز التحقق OTP عبر رسالة SMS لعمليات تحويل الرصيد المباشر |
+| **08** | `POST` | `/api/otp/confirm` | `client.ConfirmCreditTransferOTP(ctx, otpCode, senderMSISDN)` | تأكيد رمز التحقق واستخراج توكن المصادقة والتفويض لإتمام التحويل |
+| **09** | `POST` | `/api/number/extend-validity` | `client.ExtendValidity(ctx, amount)` | تمديد صلاحية استقبال وإرسال الخط بخصم من رصيد الحساب |
+| **10** | `GET` | `/api/number/validity-options` | `client.GetValidityOptions(ctx)` | استعلام خيارات وأسعار تمديد صلاحية الخط المتاحة رسمياً |
+| **11** | `POST` | `/api/payment/create-checkout-id` | `client.CreateCheckoutID(ctx, req)` | توليد معرّف الدفع Checkout ID لبوابة الدفع الإلكتروني والبطاقات المصرفية |
+| **12** | `POST` | `/api/payment/refresh-payment-status` | `client.RefreshPaymentStatus(ctx, checkoutID)` | التحقق من حالة إتمام معاملة الدفع الإلكتروني وتأكيد نجاحها |
+| **13** | `POST` | `/api/payment/save-card` | `client.SaveCard(ctx, req)` | حفظ وتشفير بيانات البطاقة المصرفية للعمليات القادمة |
+| **14** | `POST` | `/api/payment/set-default-card` | `client.SetDefaultCard(ctx, cardID)` | تعيين بطاقة دفع معينة كخيار افتراضي في الحساب |
+| **15** | `GET` | `/api/payment/user-cards` | `client.GetUserCards(ctx)` | استعلام قائمة البطاقات المصرفية المحفوظة للمشترك |
+| **16** | `DELETE` | `/api/payment/delete-card` | `client.DeleteCard(ctx, cardID)` | حذف وفك ربط بطاقة مصرفية محفوظة من الحساب |
+| **17** | `POST` | `/api/payment/purchase-order` | `client.CreatePurchaseOrder(ctx, req)`<br>`client.InitiateZainCashPayment(ctx, req)` | إنشاء أمر دفع مباشر وشراء عبر محفظة زين كاش (ZainCash) |
+
+#### محرك المطابقة والتحقق الذاتي ومعالجة الرسائل (Verification & SMS Engine):
+
+| # | النوع | الوظيفة / العملية | دالة Go SDK المقابلة | الوصف التفصيلي باللغة العربية |
+| :---: | :---: | :--- | :--- | :--- |
+| **01** | `محرك محلي` | فحص ومطابقة الحوالة | `client.VerifyIncomingTransfer(ctx, senderPhone, minAmount)` | التحقق البرمجي التلقائي والفوري من استلام حوالة رصيد من زبون **دون الحاجة لتسجيل دخول الزبون** وبدون أي تدخل يدوي للأدمن |
+| **02** | `محرك محلي` | الانتظار الذكي (Smart Polling) | `client.WaitForIncomingTransfer(ctx, phone, amt, interval)` | فحص دوري متكرر كل X ثوانٍ حتى وصول الحوالة فعلياً في كشف الحساب وتفعيل الطلب آلياً |
+| **03** | `محلل SMS` | قراءة رسائل الـ SMS | `zain.ParseTransferSMS(smsText)` | استخراج رقم المرسل والمبلغ المالي من نص رسائل زين العراق الرسمية (يدعم الأرقام الشرقية `٠١٢٣٤` والغربية `01234`) |
+| **04** | `سجل محلي` | تسجيل فوري للحوالة | `client.RecordIncomingTransferFromSMS(smsText)` | تسجيل الحوالة المقروءة من رسالة الـ SMS تلقائياً في دفتر المطابقة بالذاكرة مع حماية منع الازدواجية |
+| **05** | `إعدادات` | تثبيت محفظة النظام | `client.SetMasterWallet(phone)`<br>`client.MasterWallet()` | تثبيت واسترجاع رقم الشريحة المعتمدة لاستقبال الأموال والرصيد في النظام |
+| **06** | `توليد USSD` | كود التحويل السريع | `client.FormatUSSDTransfer(recipient, amount)` | توليد كود التحويل المباشر لزين العراق (`*123*amount*recipient#`) لإرساله للزبون للتحويل فورياً |
+| **07** | `معالجة أرقام` | توحيد صيغ الأرقام العراقية | `zain.NormalizeMSISDN(phone)`<br>`zain.FormatLocalMSISDN(phone)` | تحويل الأرقام للصيغة المعيارية الدولية والمحلية ومطابقة آخر 9 أرقام لتجاوز اختلافات الصيغ |
 
 ### 4. العروض والباقات ونظام فليكس (Offers, Bundles & Flex)
 * **كتالوج العروض المعتمد**: `GetOffersCMS(ctx, queryShortname)` لجلب باقات الإنترنت والمكالمات.
@@ -358,7 +368,7 @@ func main() {
 }
 ```
 
-### 6. التحقق الآلي من الحوالات الواردة لبوتات التليجرام والمتاجر الرقمية
+### 6. التحقق الآلي من الحوالات الواردة للأنظمة والمتاجر الرقمية والتطبيقات
 
 التحقق التلقائي والفوري من تحويلات الرصيد الواردة من الزبائن دون الحاجة لتسجيل دخول الزبون (عبر مطابقة رقم الهاتف وسجل الفاتورة الإلكترونية والإشعارات):
 
@@ -384,7 +394,7 @@ func main() {
 		log.Fatalf("session load error: %v", err)
 	}
 
-	// 1. تثبيت رقم محفظة البوت المعتمد
+	// 1. تثبيت رقم محفظة النظام المعتمد
 	masterWallet := "07801234567"
 	client.SetMasterWallet(masterWallet)
 
@@ -443,7 +453,7 @@ func main() {
 | **`09_payments_and_zaincash`** | بوابات الدفع الإلكتروني، البطاقات، ومحفظة زين كاش. | `go run examples/09_payments_and_zaincash/main.go` |
 | **`10_bundle_sharing_and_fnf`** | مشاركة الباقات العائلية، وتحديد الحصص ونقل الوحدات. | `go run examples/10_bundle_sharing_and_fnf/main.go` |
 | **`11_nearme_and_notifications`** | فروع زين القريبة، الإشعارات، والخدمات الرقمية. | `go run examples/11_nearme_and_notifications/main.go` |
-| **`12_wallet_and_incoming_transfer_verification`** | تثبيت المحفظة والتحقق الآلي من تحويلات الرصيد لبوتات التليجرام. | `go run examples/12_wallet_and_incoming_transfer_verification/main.go` |
+| **`12_wallet_and_incoming_transfer_verification`** | تثبيت المحفظة والتحقق الآلي من تحويلات الرصيد للأنظمة والمتاجر المؤتمتة. | `go run examples/12_wallet_and_incoming_transfer_verification/main.go` |
 | **`13_daily_gift_and_rewards_automation`** | أتمتة سحب الهدايا اليومية، تحويل نقاط المكافآت، وفحص الصلاحية. | `go run examples/13_daily_gift_and_rewards_automation/main.go` |
 | **`14_automated_transfer_matching`** | التحقق الآلي من استلام الرصيد ومطابقته فورياً من الرسائل والكشف السحابي ومنع التكرار. | `go run examples/14_automated_transfer_matching/main.go` |
 | **`interactive_cli`** | تطبيق تيرمينال تفاعلي شامل يتيح تجربة جميع ميزات المكتبة عبر قائمة نصية مرئية. | `go run examples/interactive_cli/main.go` |
