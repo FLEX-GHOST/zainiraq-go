@@ -23,7 +23,7 @@
 
 ## 1. جدول نقاط النهاية المعتمدة (Endpoints Matrix)
 
-| # | الطريقة | المسار (Endpoint Path) | دالة Go SDK المقابلة | الوصف التفصيلي باللغة العربية |
+| # | الطريقة | المسار (Endpoint Path) | الدالة المقابلة (Go SDK) | الوصف التفصيلي باللغة العربية |
 | :---: | :---: | :--- | :--- | :--- |
 | **01** | `POST` | `/api/otp/request` | `client.RequestOTP(ctx, msisdn)` | طلب إرسال رمز التحقق OTP برسالة نصية SMS وتوليد `request_id` |
 | **02** | `POST` | `/api/otp/confirm` | `client.ConfirmOTP(ctx, msisdn, code)` | تأكيد رمز التحقق المدخل من المشترك وتوليد معرف التوثيق `confirmation_id` |
@@ -49,7 +49,7 @@
 | **22** | `GET` | `/api/number/query-unbilled` | `client.GetUnbilled(ctx)` | استعلام الاستهلاك المفتوح خارج الفاتورة قبل صدورها |
 | **23** | `GET` | `/api/number/advance-payment` | `client.GetAdvancePayment(ctx)` | تفاصيل المبالغ المدفوعة مقدماً ورصيد التسديد المستقبلي |
 | **24** | `POST` | `/api/number/change-language` | `client.ChangeLanguage(ctx, lang)` | تغيير لغة الإشعارات والرسائل النصية للنظام (عربي، كردي، إنكليزي) |
-| **25** | `GET` | `/api/number/electronic-bill-items` | `client.GetCDRTransferHistory(ctx)` / `client.GetElectronicBillItems(ctx)` | كشف الحساب وسجل تحويلات الرصيد الواردة (CDR) لمعرفة رقم المرسل والمبلغ وتأكيد الدفع التلقائي بدون تسجيل دخول الزبون |
+| **25** | `GET` | `/api/number/electronic-bill-items` | `client.GetCDRTransferHistory(ctx)` / `client.VerifyIncomingTransfer(ctx)` | كشف حساب تحويلات الرصيد الواردة (سجل CDR) مع رقم المرسل والمبلغ والتاريخ لتأكيد الدفع التلقائي دون تسجيل دخول الزبون |
 | **26** | `POST` | `/api/number/charge-voucher` | `client.RechargeVoucher(ctx, pin)` | شحن وتعبئة الرصيد بكارت الشحن الورقي (16 رقماً) |
 | **27** | `POST` | `/api/number/credit-transfer` | `client.CreditTransfer(ctx, to, amt, otp)` | تحويل رصيد نقدي من رقم إلى رقم آخر في شبكة زين العراق |
 | **28** | `POST` | `/api/number/extend-validity` | `client.ExtendValidity(ctx, amount)` | تمديد صلاحية استقبال وإرسال الخط بخصم من الرصيد |
@@ -680,17 +680,29 @@ Accept: application/json
 
 #### آلية عمل أنظمة الدفع الإلكتروني والتحقق التلقائي بدون تسجيل دخول الزبون (Zero-Customer-Login Architecture):
 1. **عدم حاجة الزبون لتسجيل الدخول**:
-   - الزبون لا يحتاج إلى تسجيل الدخول في البوت نهائياً، ولا يشارك أي كلمة مرور أو رمز OTP.
-   - الزبون يقوم فقط بطلب كود الـ USSD السريع من شريحته للتحويل المباشر إلى رقم محفظة البوت:
-     `*123*المبلغ*رقم_محفظة_البوت#` (يتم توليده تلقائياً عبر `client.FormatUSSDTransfer`).
+   - الزبون لا يحتاج إلى تسجيل الدخول في النظام نهائياً، ولا يشارك أي كلمة مرور أو رمز OTP.
+   - الزبون يقوم فقط بطلب كود الـ USSD السريع من شريحته للتحويل المباشر إلى رقم محفظة النظام:
+     `*123*المبلغ*رقم_محفظة_النظام#` (يتم توليده تلقائياً عبر `client.FormatUSSDTransfer`).
 2. **استعلام الشريحة المستلمة لسجل الحوالات (CDR Ledger)**:
-   - شريحة البوت (المسجلة مسبقاً عبر `session.json`) تقوم بالاستعلام السحابي عن سجل الفاتورة والتحويلات `/api/number/electronic-bill-items`.
+   - شريحة النظام (المسجلة مسبقاً عبر `session.json`) تقوم بالاستعلام السحابي عن سجل الفاتورة والتحويلات `/api/number/electronic-bill-items`.
    - خادم زين يُرجع قائمة الحوالات الواردة مع رقم هاتف المرسل الحقيقي (`b_number`) والمبلغ الدقيق بالدينار وتوقيت الحوالة بالثانية.
 3. **خوارزمية المطابقة والتحقق الفوري (`VerifyIncomingTransfer`)**:
    - **مطابقة أرقام الهواتف الذكية**: تطابق رقم هاتف الزبون بمقارنة **آخر 9 أرقام** لتجاوز كافة اختلافات الصيغ (سواء أرسل الزبون رقمه بصيغة `078XXXXXXXX` أو `78XXXXXXXX` أو `96478XXXXXXXX` أو `+96478XXXXXXXX`).
    - **معالجة الأرقام الشرقية**: تحويل تلقائي للأرقام المكتوبة بالصيغة الشرقية (`٠١٢٣٤٥٦٧٨٩`) إلى الصيغة الرقمية القياسية.
    - **التحقق من القيمة المالية**: التأكد من أن المبلغ المحول مساوٍ أو أكبر من القيمة المطلوبة لمنع الاحتيال وضمان إتمام وتفعيل الطلب آلياً 100% بدون أي تدخل بشري للأدمن.
-   - **الانتظار الذكي (Smart Polling)**: دالة `client.WaitForIncomingTransfer(ctx, senderPhone, minAmount, interval)` تتيح للبوت الانتظار وفحص وصول الحوالة في الخلفية حتى اكتمال الدفع مع مهلة زمنية محددة.
+   - **الانتظار الذكي (Smart Polling)**: دالة `client.WaitForIncomingTransfer(ctx, senderPhone, minAmount, interval)` تتيح للنظام الانتظار وفحص وصول الحوالة في الخلفية حتى اكتمال الدفع مع مهلة زمنية محددة.
+
+#### أدوات ودوال محرك التحقق والمطابقة في الـ SDK:
+
+| # | الأداة / الميزة | دالة Go SDK المقابلة | الوصف والدور التقني |
+| :---: | :--- | :--- | :--- |
+| **01** | كشف حساب التحويلات (CDR) | `client.GetCDRTransferHistory(ctx, limit)` | جلب سجل الحوالات الواردة الحقيقي من خوادم زين العراق |
+| **02** | التحقق والمطابقة التلقائية | `client.VerifyIncomingTransfer(ctx, senderPhone, minAmount)` | مطابقة رقم هاتف الزبون والمبلغ وتأكيد العملية بدون تسجيل دخول الزبون |
+| **03** | الانتظار الذكي (Smart Polling) | `client.WaitForIncomingTransfer(ctx, phone, amt, interval)` | فحص دوري مستمر حتى وصول الحوالة فعلياً في كشف الحساب وتفعيل الطلب |
+| **04** | محلل رسائل SMS | `zain.ParseTransferSMS(smsText)` | استخراج رقم المرسل والمبلغ من نص رسالة زين (بالأرقام العربية والإنجليزية) |
+| **05** | تسجيل فوري للحوالة | `client.RecordIncomingTransferFromSMS(smsText)` | إدراج الحوالة المقروءة من رسالة الـ SMS فورياً في دفتر المطابقة بالذاكرة |
+| **06** | توليد كود الـ USSD السريع | `client.FormatUSSDTransfer(recipient, amount)` | توليد كود التحويل المباشر لزين العراق (`*123*amount*recipient#`) لإرساله للزبون |
+| **07** | تثبيت محفظة النظام | `client.SetMasterWallet(phone)` / `client.MasterWallet()` | تثبيت واسترجاع رقم الشريحة المعتمدة لاستقبال التحويلات في النظام |
 
 ---
 
