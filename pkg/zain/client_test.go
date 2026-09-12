@@ -1370,6 +1370,18 @@ func TestNormalizeMSISDNAndPolling(t *testing.T) {
 	if len(remaining) != 1 || remaining[0].MSISDN != "9647802222222" {
 		t.Errorf("expected only fresh transfer remaining, got %+v", remaining)
 	}
+
+	// Test custom WithMaxRecordedTransfers
+	customCapClient := NewClient(WithMaxRecordedTransfers(5))
+	for i := 0; i < 10; i++ {
+		customCapClient.RecordIncomingTransfer(IncomingTransferRecord{
+			MSISDN: fmt.Sprintf("964780000%d", i),
+			Amount: "1000",
+		})
+	}
+	if recs := customCapClient.GetRecordedIncomingTransfers(); len(recs) != 5 {
+		t.Errorf("expected 5 records with custom cap, got %d", len(recs))
+	}
 }
 
 func TestSystemAndSIMMethods(t *testing.T) {

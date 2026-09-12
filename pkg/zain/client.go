@@ -42,6 +42,7 @@ type Client struct {
 	msisdn                    string
 	masterWallet              string
 	recordedIncomingTransfers []IncomingTransferRecord
+	maxRecordedTransfers      int
 	onTokenUpdate             func(*SessionData)
 	mu                        sync.RWMutex
 }
@@ -153,6 +154,15 @@ func WithOnTokenUpdate(fn func(*SessionData)) Option {
 	}
 }
 
+// WithMaxRecordedTransfers configures the maximum capacity of in-memory recorded transfers (default 1000).
+func WithMaxRecordedTransfers(limit int) Option {
+	return func(c *Client) {
+		if limit > 0 {
+			c.maxRecordedTransfers = limit
+		}
+	}
+}
+
 func (c *Client) SetTokens(accessToken, refreshToken string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -200,6 +210,15 @@ func (c *Client) MasterWallet() string {
 	return c.msisdn
 }
 
+// SetMaxRecordedTransfers dynamically adjusts the in-memory transfer buffer capacity limit.
+func (c *Client) SetMaxRecordedTransfers(limit int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if limit > 0 {
+		c.maxRecordedTransfers = limit
+	}
+}
+
 func (c *Client) RecordIncomingTransfer(rec IncomingTransferRecord) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -208,12 +227,15 @@ func (c *Client) RecordIncomingTransfer(rec IncomingTransferRecord) {
 		rec.CreatedAt = time.Now().Format("2006-01-02 15:04:05")
 	}
 
-	const maxRecordedTransfers = 1000
+	maxCap := c.maxRecordedTransfers
+	if maxCap <= 0 {
+		maxCap = 1000
+	}
 
 	// 1. If buffer reaches capacity, purge expired transfers (> 24 hours) first
-	if len(c.recordedIncomingTransfers) >= maxRecordedTransfers {
+	if len(c.recordedIncomingTransfers) >= maxCap {
 		cutoff := time.Now().Add(-24 * time.Hour)
-		active := make([]IncomingTransferRecord, 0, maxRecordedTransfers)
+		active := make([]IncomingTransferRecord, 0, maxCap)
 		for _, item := range c.recordedIncomingTransfers {
 			if item.CreatedAt != "" {
 				t, err := time.ParseInLocation("2006-01-02 15:04:05", item.CreatedAt, time.Local)
@@ -230,8 +252,8 @@ func (c *Client) RecordIncomingTransfer(rec IncomingTransferRecord) {
 	}
 
 	// 2. Strict FIFO ring-buffer cap: drop oldest item if still at/over capacity
-	if len(c.recordedIncomingTransfers) >= maxRecordedTransfers {
-		c.recordedIncomingTransfers = c.recordedIncomingTransfers[len(c.recordedIncomingTransfers)-maxRecordedTransfers+1:]
+	if len(c.recordedIncomingTransfers) >= maxCap {
+		c.recordedIncomingTransfers = c.recordedIncomingTransfers[len(c.recordedIncomingTransfers)-maxCap+1:]
 	}
 
 	c.recordedIncomingTransfers = append(c.recordedIncomingTransfers, rec)
